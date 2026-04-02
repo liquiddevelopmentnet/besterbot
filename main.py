@@ -30,7 +30,8 @@ async def on_message(message: Message):
     if message.author == client.user:
         return
 
-    if message.channel.id != int(os.getenv('DISCORD_CHANNEL_ID')):
+    allowed_channels = [int(cid.strip()) for cid in os.getenv('DISCORD_CHANNEL_ID', '').split(',') if cid.strip()]
+    if message.channel.id not in allowed_channels:
         print(f'Ignoring message from channel {message.channel.id}')
         return
 
