@@ -18,8 +18,10 @@ from bot.commands.casino.wallet import (
 )
 
 _STEAL_KEY = "last_steal"
-_COOLDOWN_SECS = 5 * 60 # 5 minutes
+_COOLDOWN_SECS  = 5 * 60  # 5 minutes
 _SUCCESS_CHANCE = 0.55
+_MAX_STEAL      = 5_000   # max Maka you can gain on a successful steal
+_MAX_PENALTY    = 3_000   # max Maka you can lose when caught
 
 
 @command("steal", description="Attempt to steal from another player", usage="f.steal @user", category="Casino")
@@ -65,7 +67,7 @@ async def steal_command(message: Message, args: list[str]):
         # ── Success ────────────────────────────────────────────
         pct = random.uniform(0.15, 0.30)
         stolen = max(100, int(target_bal * pct))
-        stolen = min(stolen, target_bal)   # can't steal more than they have
+        stolen = min(stolen, target_bal, _MAX_STEAL)
 
         force_remove_balance(target.id, stolen)
         new_author = add_balance(message.author.id, stolen)
@@ -88,6 +90,7 @@ async def steal_command(message: Message, args: list[str]):
         # ── Caught ─────────────────────────────────────────────
         pct = random.uniform(0.20, 0.40)
         penalty = max(100, int(author_bal * pct)) if author_bal > 0 else random.randint(200, 600)
+        penalty = min(penalty, _MAX_PENALTY)
         new_author = force_remove_balance(message.author.id, penalty)
 
         embed = discord.Embed(
@@ -106,6 +109,6 @@ async def steal_command(message: Message, args: list[str]):
                 inline=True,
             )
 
-    embed.set_footer(text="2-hour cooldown before your next attempt.")
+    embed.set_footer(text="5-minute cooldown before your next attempt.")
     tag_embed(embed, message.author)
     await message.reply(embed=embed)

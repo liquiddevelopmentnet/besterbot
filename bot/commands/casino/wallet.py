@@ -197,6 +197,22 @@ def get_leaderboard(limit: int = 10) -> list[tuple[str, int]]:
     return [(row[0], row[1]) for row in rows]
 
 
+def get_leaderboard_with_worth(limit: int = 10) -> list[tuple[str, int, int]]:
+    """Return (user_id, balance, inv_worth) sorted by total wealth descending."""
+    rows = get_db().execute(
+        """SELECT u.user_id,
+                  u.balance,
+                  COALESCE(SUM(i.sell_price), 0) AS inv_worth
+           FROM users u
+           LEFT JOIN items i ON i.user_id = u.user_id
+           GROUP BY u.user_id
+           ORDER BY (u.balance + COALESCE(SUM(i.sell_price), 0)) DESC
+           LIMIT ?""",
+        (limit,),
+    ).fetchall()
+    return [(row[0], row[1], row[2]) for row in rows]
+
+
 # ── Cooldowns ─────────────────────────────────────────────────────────────────
 
 def get_cooldown(user_id: int, key: str) -> float | str | None:

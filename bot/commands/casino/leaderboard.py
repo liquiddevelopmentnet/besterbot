@@ -2,28 +2,33 @@ import discord
 from discord import Message
 
 from bot.commands import command
-from bot.commands.casino.wallet import get_leaderboard, tag_embed, CURRENCY_NAME, CURRENCY_EMOJI
+from bot.commands.casino.wallet import get_leaderboard_with_worth, tag_embed, CURRENCY_NAME, CURRENCY_EMOJI
 
 MEDALS = {0: "\U0001f947", 1: "\U0001f948", 2: "\U0001f949"}
 
 
 async def _build_embed(guild: discord.Guild, requester: discord.Member) -> discord.Embed:
-    board = get_leaderboard(10)
+    board = get_leaderboard_with_worth(10)
     lines = []
-    for i, (uid, bal) in enumerate(board):
+    for i, (uid, bal, inv_worth) in enumerate(board):
         member = guild.get_member(int(uid))
         if member is None:
             try:
                 member = await guild.fetch_member(int(uid))
             except discord.NotFound:
                 pass
-        name = member.display_name if member else f"User {uid}"
-        lines.append(f"{MEDALS.get(i, f'`{i+1}.`')} **{name}** — {bal:,} {CURRENCY_EMOJI}")
+        name  = member.display_name if member else f"User {uid}"
+        total = bal + inv_worth
+        line  = f"{MEDALS.get(i, f'`{i+1}.`')} **{name}** — {bal:,} {CURRENCY_EMOJI}"
+        if inv_worth > 0:
+            line += f"  *(+{inv_worth:,} inv — {total:,} total)*"
+        lines.append(line)
     embed = discord.Embed(
         title=f"{CURRENCY_EMOJI} {CURRENCY_NAME} Leaderboard",
         description="\n".join(lines) or "No players yet.",
         color=0xF1C40F,
     )
+    embed.set_footer(text="Sorted by total wealth (balance + inventory)")
     return tag_embed(embed, requester)
 
 
