@@ -1,0 +1,8 @@
+discord~=2.3.2
+discord.py~=2.7.1
+gTTS~=2.5.4
+yt-dlp~=2026.3.17
+faceit~=0.1.4
+requests~=2.33.0
+dotenv~=0.9.9
+python-dotenv~=1.2.2
