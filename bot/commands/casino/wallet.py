@@ -1,19 +1,28 @@
-"""Persistent currency system — JSON-backed wallet store."""
+"""Persistent currency system — SQLite-backed wallet store.
 
-import json
+Public API is identical to the previous JSON-backed version so that no
+command file needs to change.  Internal I/O now goes through bot.db instead
+of reading/writing wallets.json on every call.
+"""
+
 import threading
-from pathlib import Path
 
 import discord
 
-CURRENCY_NAME = "Maka Flaschen"
-CURRENCY_EMOJI = "🍷"  # 🥤
-STARTING_BALANCE = 5000
-MIN_BET = 10
+from bot.db import get_db
 
-_WALLET_PATH = Path(__file__).resolve().parents[3] / "data" / "wallets.json"
+CURRENCY_NAME    = "Maka Flaschen"
+CURRENCY_EMOJI   = "🍷"
+STARTING_BALANCE = 5000
+MIN_BET          = 10
+
+# Single write-lock — same pattern as before.  Keeps compound operations
+# (transfer, trade_items, …) fully atomic even though SQLite itself is
+# thread-safe in WAL mode.
 _lock = threading.Lock()
 
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
 def tag_embed(embed: discord.Embed, member: discord.Member) -> discord.Embed:
     """Stamp an embed with the triggering user's name and avatar."""
@@ -24,178 +33,260 @@ def tag_embed(embed: discord.Embed, member: discord.Member) -> discord.Embed:
     return embed
 
 
-def _load() -> dict:
-    if not _WALLET_PATH.exists():
-        return {}
-    with open(_WALLET_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+def _ensure(uid: str) -> None:
+    """Insert a new user row with the starting balance if one does not exist."""
+    get_db().execute(
+        "INSERT OR IGNORE INTO users (user_id, balance) VALUES (?, ?)",
+        (uid, STARTING_BALANCE),
+    )
 
 
-def _save(data: dict) -> None:
-    _WALLET_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(_WALLET_PATH, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2)
+def _item_row_to_dict(row: tuple) -> dict:
+    """Convert a DB row (from items SELECT *) to the legacy item dict format."""
+    return {
+        "id":         row[0],
+        # row[1] is user_id — omitted from the public dict
+        "weapon":     row[2],
+        "skin":       row[3],
+        "rarity":     row[4],
+        "float":      row[5],
+        "wear":       row[6],
+        "wear_abbr":  row[7],
+        "pattern":    row[8],
+        "stattrak":   bool(row[9]),
+        "sell_price": row[10],
+        "image_url":  row[11],
+    }
 
 
-def _ensure(data: dict, uid: str) -> None:
-    if uid not in data:
-        data[uid] = {"balance": STARTING_BALANCE}
-
+# ── Balance ───────────────────────────────────────────────────────────────────
 
 def get_balance(user_id: int) -> int:
     with _lock:
-        data = _load()
         uid = str(user_id)
-        _ensure(data, uid)
-        _save(data)
-        return data[uid]["balance"]
+        _ensure(uid)
+        row = get_db().execute(
+            "SELECT balance FROM users WHERE user_id = ?", (uid,)
+        ).fetchone()
+        return row[0]
 
 
 def add_balance(user_id: int, amount: int) -> int:
     with _lock:
-        data = _load()
         uid = str(user_id)
-        _ensure(data, uid)
-        data[uid]["balance"] += amount
-        _save(data)
-        return data[uid]["balance"]
+        _ensure(uid)
+        get_db().execute(
+            "UPDATE users SET balance = balance + ? WHERE user_id = ?",
+            (amount, uid),
+        )
+        row = get_db().execute(
+            "SELECT balance FROM users WHERE user_id = ?", (uid,)
+        ).fetchone()
+        return row[0]
 
 
 def remove_balance(user_id: int, amount: int) -> int:
     with _lock:
-        data = _load()
         uid = str(user_id)
-        _ensure(data, uid)
-        if data[uid]["balance"] < amount:
+        _ensure(uid)
+        row = get_db().execute(
+            "SELECT balance FROM users WHERE user_id = ?", (uid,)
+        ).fetchone()
+        if row[0] < amount:
             raise ValueError("Insufficient balance")
-        data[uid]["balance"] -= amount
-        _save(data)
-        return data[uid]["balance"]
-
-
-def transfer(from_id: int, to_id: int, amount: int) -> tuple[int, int]:
-    with _lock:
-        data = _load()
-        fid, tid = str(from_id), str(to_id)
-        _ensure(data, fid)
-        _ensure(data, tid)
-        if data[fid]["balance"] < amount:
-            raise ValueError("Insufficient balance")
-        data[fid]["balance"] -= amount
-        data[tid]["balance"] += amount
-        _save(data)
-        return data[fid]["balance"], data[tid]["balance"]
-
-
-def get_cooldown(user_id: int, key: str) -> float | None:
-    """Return the stored timestamp for a cooldown key, or None."""
-    with _lock:
-        data = _load()
-        uid = str(user_id)
-        _ensure(data, uid)
-        return data[uid].get(key)
-
-
-def set_cooldown(user_id: int, key: str, timestamp: float) -> None:
-    with _lock:
-        data = _load()
-        uid = str(user_id)
-        _ensure(data, uid)
-        data[uid][key] = timestamp
-        _save(data)
+        get_db().execute(
+            "UPDATE users SET balance = balance - ? WHERE user_id = ?",
+            (amount, uid),
+        )
+        return row[0] - amount
 
 
 def force_remove_balance(user_id: int, amount: int) -> int:
     """Remove balance without a floor check — balance can go negative."""
     with _lock:
-        data = _load()
         uid = str(user_id)
-        _ensure(data, uid)
-        data[uid]["balance"] -= amount
-        _save(data)
-        return data[uid]["balance"]
+        _ensure(uid)
+        get_db().execute(
+            "UPDATE users SET balance = balance - ? WHERE user_id = ?",
+            (amount, uid),
+        )
+        row = get_db().execute(
+            "SELECT balance FROM users WHERE user_id = ?", (uid,)
+        ).fetchone()
+        return row[0]
 
 
 def set_balance(user_id: int, amount: int) -> int:
     with _lock:
-        data = _load()
         uid = str(user_id)
-        _ensure(data, uid)
-        data[uid]["balance"] = amount
-        _save(data)
+        _ensure(uid)
+        get_db().execute(
+            "UPDATE users SET balance = ? WHERE user_id = ?",
+            (amount, uid),
+        )
         return amount
 
 
-def delete_user(user_id: int) -> bool:
-    """Remove a user from the wallet entirely. Returns True if they existed."""
+def transfer(from_id: int, to_id: int, amount: int) -> tuple[int, int]:
     with _lock:
-        data = _load()
+        db  = get_db()
+        fid = str(from_id)
+        tid = str(to_id)
+        _ensure(fid)
+        _ensure(tid)
+        row = db.execute(
+            "SELECT balance FROM users WHERE user_id = ?", (fid,)
+        ).fetchone()
+        if row[0] < amount:
+            raise ValueError("Insufficient balance")
+        db.execute("BEGIN")
+        try:
+            db.execute(
+                "UPDATE users SET balance = balance - ? WHERE user_id = ?",
+                (amount, fid),
+            )
+            db.execute(
+                "UPDATE users SET balance = balance + ? WHERE user_id = ?",
+                (amount, tid),
+            )
+            db.execute("COMMIT")
+        except Exception:
+            db.execute("ROLLBACK")
+            raise
+        f_bal = db.execute(
+            "SELECT balance FROM users WHERE user_id = ?", (fid,)
+        ).fetchone()[0]
+        t_bal = db.execute(
+            "SELECT balance FROM users WHERE user_id = ?", (tid,)
+        ).fetchone()[0]
+        return f_bal, t_bal
+
+
+def delete_user(user_id: int) -> bool:
+    """Remove a user and all their data.  Returns True if they existed."""
+    with _lock:
         uid = str(user_id)
-        if uid not in data:
-            return False
-        del data[uid]
-        _save(data)
-        return True
+        cur = get_db().execute(
+            "DELETE FROM users WHERE user_id = ?", (uid,)
+        )
+        return cur.rowcount > 0
 
 
 def everyone_broke() -> bool:
     """True if every tracked player has a balance of 0 or below."""
-    data = _load()
-    if not data:
+    row = get_db().execute("SELECT COUNT(*) FROM users").fetchone()
+    if row[0] == 0:
         return False
-    return all(info["balance"] <= 0 for info in data.values())
+    broke = get_db().execute(
+        "SELECT COUNT(*) FROM users WHERE balance > 0"
+    ).fetchone()
+    return broke[0] == 0
 
 
 def reset_all_balances(amount: int) -> None:
     """Set every tracked player's balance to `amount`."""
     with _lock:
-        data = _load()
-        for uid in data:
-            data[uid]["balance"] = amount
-        _save(data)
+        get_db().execute("UPDATE users SET balance = ?", (amount,))
 
 
 def get_leaderboard(limit: int = 10) -> list[tuple[str, int]]:
-    data = _load()
-    ranked = sorted(data.items(), key=lambda x: x[1]["balance"], reverse=True)
-    return [(uid, info["balance"]) for uid, info in ranked[:limit]]
+    rows = get_db().execute(
+        "SELECT user_id, balance FROM users ORDER BY balance DESC LIMIT ?",
+        (limit,),
+    ).fetchall()
+    return [(row[0], row[1]) for row in rows]
 
 
-# ── Inventory helpers ──────────────────────────────────────────────────────────
+# ── Cooldowns ─────────────────────────────────────────────────────────────────
+
+def get_cooldown(user_id: int, key: str) -> float | str | None:
+    """Return the stored cooldown value for a key, or None.
+
+    Numeric timestamps are returned as float; last_daily is returned as str.
+    """
+    with _lock:
+        uid = str(user_id)
+        _ensure(uid)
+        row = get_db().execute(
+            "SELECT value FROM cooldowns WHERE user_id = ? AND key = ?",
+            (uid, key),
+        ).fetchone()
+        if row is None:
+            return None
+        raw = row[0]
+        # last_daily is stored as "YYYY-MM-DD" — keep it a string
+        if key == "last_daily":
+            return raw
+        try:
+            return float(raw)
+        except ValueError:
+            return raw
+
+
+def set_cooldown(user_id: int, key: str, timestamp: float | str) -> None:
+    with _lock:
+        uid = str(user_id)
+        _ensure(uid)
+        get_db().execute(
+            """INSERT INTO cooldowns (user_id, key, value) VALUES (?, ?, ?)
+               ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value""",
+            (uid, key, str(timestamp)),
+        )
+
+
+# ── Inventory ─────────────────────────────────────────────────────────────────
 
 def get_inventory(user_id: int) -> list:
-    """Return a copy of the user's item inventory (list of item dicts)."""
+    """Return a list of item dicts for the user."""
     with _lock:
-        data = _load()
         uid = str(user_id)
-        _ensure(data, uid)
-        return list(data[uid].get("inventory", []))
+        _ensure(uid)
+        rows = get_db().execute(
+            "SELECT * FROM items WHERE user_id = ? ORDER BY rowid",
+            (uid,),
+        ).fetchall()
+        return [_item_row_to_dict(r) for r in rows]
 
 
 def add_item(user_id: int, item: dict) -> None:
-    """Append an item dict to the user's inventory."""
+    """Insert an item dict into the user's inventory."""
     with _lock:
-        data = _load()
         uid = str(user_id)
-        _ensure(data, uid)
-        data[uid].setdefault("inventory", []).append(item)
-        _save(data)
+        _ensure(uid)
+        get_db().execute(
+            """INSERT INTO items
+               (id, user_id, weapon, skin, rarity, float, wear, wear_abbr,
+                pattern, stattrak, sell_price, image_url)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                item["id"],
+                uid,
+                item["weapon"],
+                item["skin"],
+                item["rarity"],
+                item["float"],
+                item["wear"],
+                item["wear_abbr"],
+                item["pattern"],
+                int(item["stattrak"]),
+                item["sell_price"],
+                item.get("image_url"),
+            ),
+        )
 
 
 def remove_item(user_id: int, item_id: str) -> dict | None:
-    """Remove an item by its short id. Returns the removed item or None."""
+    """Remove an item by its short id.  Returns the removed item or None."""
     with _lock:
-        data = _load()
         uid = str(user_id)
-        _ensure(data, uid)
-        inv = data[uid].get("inventory", [])
-        for i, item in enumerate(inv):
-            if item["id"] == item_id:
-                removed = inv.pop(i)
-                data[uid]["inventory"] = inv
-                _save(data)
-                return removed
-        return None
+        row = get_db().execute(
+            "SELECT * FROM items WHERE id = ? AND user_id = ?",
+            (item_id, uid),
+        ).fetchone()
+        if row is None:
+            return None
+        get_db().execute("DELETE FROM items WHERE id = ?", (item_id,))
+        return _item_row_to_dict(row)
 
 
 def trade_items(
@@ -205,33 +296,67 @@ def trade_items(
     to_item_ids: list[str],
 ) -> bool:
     """Atomically swap items between two users.
-    Returns False if any requested item is not found."""
+    Returns False if any requested item is not found.
+    """
     with _lock:
-        data = _load()
-        fid, tid = str(from_id), str(to_id)
-        _ensure(data, fid)
-        _ensure(data, tid)
-        f_inv = data[fid].get("inventory", [])
-        t_inv = data[tid].get("inventory", [])
-        from_set = set(from_item_ids)
-        to_set = set(to_item_ids)
-        f_moving = [it for it in f_inv if it["id"] in from_set]
-        t_moving = [it for it in t_inv if it["id"] in to_set]
-        if len(f_moving) != len(from_item_ids) or len(t_moving) != len(to_item_ids):
+        db  = get_db()
+        fid = str(from_id)
+        tid = str(to_id)
+        _ensure(fid)
+        _ensure(tid)
+
+        # Verify all items exist and belong to the correct owners
+        f_rows = db.execute(
+            f"SELECT * FROM items WHERE user_id = ? AND id IN ({','.join('?' * len(from_item_ids))})",
+            (fid, *from_item_ids),
+        ).fetchall()
+        t_rows = db.execute(
+            f"SELECT * FROM items WHERE user_id = ? AND id IN ({','.join('?' * len(to_item_ids))})",
+            (tid, *to_item_ids),
+        ).fetchall()
+
+        if len(f_rows) != len(from_item_ids) or len(t_rows) != len(to_item_ids):
             return False
-        data[fid]["inventory"] = [it for it in f_inv if it["id"] not in from_set]
-        data[tid]["inventory"] = [it for it in t_inv if it["id"] not in to_set]
-        data[fid]["inventory"].extend(t_moving)
-        data[tid]["inventory"].extend(f_moving)
-        _save(data)
+
+        db.execute("BEGIN")
+        try:
+            # Re-assign from_id's items to to_id
+            if from_item_ids:
+                db.execute(
+                    f"UPDATE items SET user_id = ? WHERE id IN ({','.join('?' * len(from_item_ids))})",
+                    (tid, *from_item_ids),
+                )
+            # Re-assign to_id's items to from_id
+            if to_item_ids:
+                db.execute(
+                    f"UPDATE items SET user_id = ? WHERE id IN ({','.join('?' * len(to_item_ids))})",
+                    (fid, *to_item_ids),
+                )
+            db.execute("COMMIT")
+        except Exception:
+            db.execute("ROLLBACK")
+            raise
+
         return True
 
+
+def get_all_inventories() -> dict[str, list]:
+    """Return {uid: [items…]} for every user that has at least one item."""
+    rows = get_db().execute("SELECT * FROM items ORDER BY user_id, rowid").fetchall()
+    result: dict[str, list] = {}
+    for row in rows:
+        uid = row[1]
+        result.setdefault(uid, []).append(_item_row_to_dict(row))
+    return result
+
+
+# ── Bet helper ────────────────────────────────────────────────────────────────
 
 def resolve_bet(raw: str, user_id: int) -> int | None:
     """Parse a bet string into an integer amount based on the user's balance.
 
     Accepted formats:
-      all / max / allin      → full balance
+      all / max / allin / a  → full balance
       half                   → 50 % of balance
       min                    → MIN_BET
       50% / 25% / 75% …      → that percentage of balance
@@ -258,13 +383,3 @@ def resolve_bet(raw: str, user_id: int) -> int | None:
     if s.isdigit():
         return int(s)
     return None
-
-
-def get_all_inventories() -> dict[str, list]:
-    """Return {uid: [items...]} for every user that has at least one item."""
-    data = _load()
-    return {
-        uid: list(info.get("inventory", []))
-        for uid, info in data.items()
-        if info.get("inventory")
-    }

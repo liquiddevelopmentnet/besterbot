@@ -1,1 +1,4 @@
 .env
+data/besterbot.db
+data/backups/
+.idea/

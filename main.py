@@ -7,6 +7,7 @@ from discord import Message
 from dotenv import load_dotenv
 from gtts import gTTS
 
+from bot.db import init_db
 from bot.commands.casino.wallet import get_balance
 from bot.commands.registry import load_commands, get_command
 from bot.commands.casino.reset import check_broke_reset, _most_populated_vc
@@ -86,5 +87,6 @@ async def on_message(message: Message):
             await message.reply(f"`{cmd_name}` ist kein befehl ni")
 
 
+init_db()
 load_commands()
 client.run(os.getenv('DISCORD_TOKEN'))
