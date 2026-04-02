@@ -1,0 +1,155 @@
+import random
+
+import discord
+from discord import Message
+
+from bot.commands import command
+from bot.commands.casino.wallet import (
+    remove_balance, add_balance, tag_embed,
+    CURRENCY_NAME, CURRENCY_EMOJI, MIN_BET, resolve_bet,
+)
+
+# Preset target multipliers offered as buttons
+_PRESETS = [1.5, 2.0, 3.0, 5.0, 10.0, 25.0]
+
+
+def _crash_point() -> float:
+    """
+    Generate a random crash point.
+    Distribution: P(crash >= x) = 1.05 / x  → 105% RTP for any target.
+    Capped at 100x.
+    """
+    r = random.random()
+    return round(min(1.05 / r, 100.0), 2)
+
+
+def _pending_embed(member: discord.Member, bet: int) -> discord.Embed:
+    lines = []
+    for p in _PRESETS:
+        chance = min(int(1.05 / p * 100), 99)
+        lines.append(f"**{p}x** — {chance}% chance · pays **{int(bet * p):,}**")
+    embed = discord.Embed(
+        title="📈 Crash",
+        description=(
+            "Pick your target multiplier below.\n"
+            "If the rocket crashes *before* your target — you lose.\n\n"
+            + "\n".join(lines)
+        ),
+        color=0xF39C12,
+    )
+    embed.add_field(name="Bet", value=f"{bet:,} {CURRENCY_EMOJI}", inline=True)
+    embed.set_footer(text="Player edge ~5% — odds are in your favour")
+    return tag_embed(embed, member)
+
+
+def _result_embed(
+    member: discord.Member,
+    bet: int,
+    target: float,
+    crash: float,
+) -> discord.Embed:
+    won    = crash >= target
+    payout = int(bet * target)
+
+    if won:
+        profit = payout - bet
+        embed  = discord.Embed(
+            title="📈 Crash — 🚀 Safe!",
+            description=(
+                f"Rocket crashed at **{crash}x** — your target was **{target}x**.\n"
+                f"You won **{payout:,}** {CURRENCY_EMOJI} (**+{profit:,}**)."
+            ),
+            color=0x2ECC71,
+        )
+    else:
+        embed = discord.Embed(
+            title="📈 Crash — 💥 Crashed!",
+            description=(
+                f"Rocket crashed at **{crash}x** — before your target of **{target}x**.\n"
+                f"You lost **{bet:,}** {CURRENCY_EMOJI}."
+            ),
+            color=0xE74C3C,
+        )
+
+    embed.add_field(name="Bet",        value=f"{bet:,} {CURRENCY_EMOJI}", inline=True)
+    embed.add_field(name="Target",     value=f"{target}x",                inline=True)
+    embed.add_field(name="Crashed At", value=f"{crash}x",                 inline=True)
+    return tag_embed(embed, member)
+
+
+class CrashView(discord.ui.View):
+    def __init__(self, user_id: int, member: discord.Member, bet: int):
+        super().__init__(timeout=60)
+        self.user_id  = user_id
+        self.member   = member
+        self.bet      = bet
+        self._message: discord.Message | None = None
+
+        for i, preset in enumerate(_PRESETS):
+            btn = discord.ui.Button(
+                label=f"{preset}x",
+                style=discord.ButtonStyle.primary,
+                row=0 if i < 3 else 1,
+                custom_id=f"crash_{preset}_{user_id}",
+            )
+            btn.callback = self._make_cb(preset)
+            self.add_item(btn)
+
+    def _make_cb(self, target: float):
+        async def callback(interaction: discord.Interaction):
+            if interaction.user.id != self.user_id:
+                await interaction.response.send_message("This isn't your game!", ephemeral=True)
+                return
+
+            crash = _crash_point()
+            won   = crash >= target
+
+            if won:
+                payout = int(self.bet * target)
+                add_balance(self.user_id, payout)
+
+            for item in self.children:
+                item.disabled = True
+
+            embed = _result_embed(self.member, self.bet, target, crash)
+            await interaction.response.edit_message(embed=embed, view=self)
+            self.stop()
+
+        return callback
+
+    async def on_timeout(self):
+        # Player never picked — refund
+        add_balance(self.user_id, self.bet)
+        for item in self.children:
+            item.disabled = True
+        if self._message:
+            try:
+                await self._message.edit(view=self)
+            except Exception:
+                pass
+
+
+@command("crash", description="Pick a multiplier target — cash out before the rocket crashes", usage="f.crash <bet>", category="Casino")
+async def crash_command(message: Message, args: list[str]):
+    if not args:
+        await message.reply("Usage: `f.crash <bet>`  (e.g. `f.crash 500`, `f.crash all`, `f.crash 50%`)")
+        return
+
+    bet = resolve_bet(args[0], message.author.id)
+    if bet is None:
+        await message.reply("Usage: `f.crash <bet>`  (e.g. `f.crash 500`, `f.crash all`, `f.crash 50%`)")
+        return
+    if bet < MIN_BET:
+        await message.reply(f"Minimum bet is {MIN_BET} {CURRENCY_EMOJI}")
+        return
+
+    try:
+        remove_balance(message.author.id, bet)
+    except ValueError:
+        await message.reply(f"You don't have enough {CURRENCY_NAME}!")
+        return
+
+    embed = _pending_embed(message.author, bet)
+    view  = CrashView(message.author.id, message.author, bet)
+    msg   = await message.reply(embed=embed, view=view)
+    view._message = msg

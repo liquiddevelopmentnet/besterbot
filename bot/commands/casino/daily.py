@@ -1,0 +1,61 @@
+"""f.daily — 10 000 Maka Flaschen once per calendar day (resets at midnight CET)."""
+
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+import discord
+from discord import Message
+
+from bot.commands import command
+from bot.commands.casino.wallet import (
+    add_balance, get_cooldown, set_cooldown, tag_embed,
+    CURRENCY_NAME, CURRENCY_EMOJI,
+)
+
+_CET = ZoneInfo("Europe/Berlin")   # handles both CET (UTC+1) and CEST (UTC+2)
+_DAILY_KEY = "last_daily"
+_DAILY_AMOUNT = 10_000
+
+
+def _today_cet() -> str:
+    return datetime.now(tz=_CET).strftime("%Y-%m-%d")
+
+
+def _seconds_until_midnight_cet() -> int:
+    now = datetime.now(tz=_CET)
+    midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    # next midnight
+    from datetime import timedelta
+    midnight = midnight + timedelta(days=1)
+    return int((midnight - now).total_seconds())
+
+
+@command("daily", description="Claim your daily 10 000 Maka Flaschen", usage="f.daily", category="Casino")
+async def daily_command(message: Message, args: list[str]):
+    today = _today_cet()
+    last = get_cooldown(message.author.id, _DAILY_KEY)
+
+    if last == today:
+        secs = _seconds_until_midnight_cet()
+        h, rem = divmod(secs, 3600)
+        m, s = divmod(rem, 60)
+        embed = discord.Embed(
+            title=f"{CURRENCY_EMOJI} Daily Already Claimed",
+            description=f"Come back in **{h}h {m}m {s}s** (resets at midnight CET).",
+            color=0xE74C3C,
+        )
+        tag_embed(embed, message.author)
+        await message.reply(embed=embed)
+        return
+
+    new_bal = add_balance(message.author.id, _DAILY_AMOUNT)
+    set_cooldown(message.author.id, _DAILY_KEY, today)
+
+    embed = discord.Embed(
+        title=f"{CURRENCY_EMOJI} Daily Reward Claimed!",
+        description=f"+**{_DAILY_AMOUNT:,}** {CURRENCY_NAME}\nNew balance: **{new_bal:,}** {CURRENCY_EMOJI}",
+        color=0x2ECC71,
+    )
+    embed.set_footer(text="Resets at midnight CET.")
+    tag_embed(embed, message.author)
+    await message.reply(embed=embed)
