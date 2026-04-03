@@ -31,32 +31,32 @@ RARITIES: dict[str, dict] = {
         "emoji":      "🔷",
         "color":      0x4FC3F7,
         "label":      "Mil-Spec Grade",
-        "weight":     6500,   # 65 %
-        "sell_range": (1, 5),
+        "weight":     5200,   # 52 %
+        "sell_range": (1, 4),
     },
     "blue": {
         "name":       "Restricted",
         "emoji":      "🟦",
         "color":      0x4169E1,
         "label":      "Restricted",
-        "weight":     2500,   # 25 %
-        "sell_range": (20, 60),
+        "weight":     3500,   # 35 %
+        "sell_range": (15, 48),
     },
     "purple": {
         "name":       "Classified",
         "emoji":      "🟪",
         "color":      0x8A2BE2,
         "label":      "Classified",
-        "weight":     600,    #  6 %
-        "sell_range": (250, 750),
+        "weight":     800,    #  8 %
+        "sell_range": (200, 600),
     },
     "pink": {
         "name":       "Covert",
         "emoji":      "🌸",
         "color":      0xFF69B4,
         "label":      "Covert",
-        "weight":     300,    #  3 %
-        "sell_range": (3_000, 9_000),
+        "weight":     400,    #  4 %
+        "sell_range": (2_400, 7_100),
     },
     "gold": {
         "name":       "Rare Special",
@@ -64,7 +64,7 @@ RARITIES: dict[str, dict] = {
         "color":      0xFFD700,
         "label":      "★ Rare Special",
         "weight":     100,    #  1 %
-        "sell_range": (40_000, 120_000),
+        "sell_range": (32_000, 95_000),
     },
 }
 
