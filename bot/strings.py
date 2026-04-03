@@ -171,7 +171,6 @@ class Case:
     FIELD_SELLWERT   = "Verkaufswert"
     FIELD_STATUS     = "Status"
 
-    STATUS_KEPT      = "🎒 Ins Inventar hinzugefügt"
     STATUS_SOLD      = "💰 Verkauft für **{price:,}** {CURRENCY_EMOJI}"
 
     NOT_YOUR_CASE    = "Das ist nicht deine Case!"
@@ -181,12 +180,11 @@ class Case:
         "Aktuell hast du nicht genug {CURRENCY_NAME}."
     )
 
-    KEEP_LABEL       = "Behalten"
     SELL_LABEL       = "Verkaufen"
-    KEEP_OPEN_LABEL  = "Behalten & Noch mal"
-    SELL_OPEN_LABEL  = "Verkaufen & Noch mal"
+    RETRY_LABEL      = "Nochmal"
+    SELL_OPEN_LABEL  = "Verkaufen & Nochmal"
 
-    DESCRIPTION = "Öffne eine CS2-Case für 800 Maka"
+    DESCRIPTION = "Öffne eine CS2-Case für 1.450 Maka"
 
 
 # ── Casino / Casino ───────────────────────────────────────────────────────────
@@ -630,17 +628,20 @@ class Fish:
 class Inventory:
     TITLE_OWN    = "🎒 Dein Inventar"
     TITLE_OTHER  = "🎒 {name}'s Inventar"
-    EMPTY_OWN    = "Dein Inventar ist leer!\nÖffne eine Case mit `f.case` für **800** Maka."
+    EMPTY_OWN    = "Dein Inventar ist leer!\nÖffne eine Case mit `f.case` für **1.450** Maka."
     EMPTY_OTHER  = "**{name}** hat noch keine Items."
     FIELD_WORTH  = "Inventarwert"
     FIELD_ITEMS  = "Items"
-    FOOTER       = "Seite {page}/{total}  ·  {count} Items  ·  Sortierung: {sort}{sell_hint}"
-    SELL_HINT    = "  ·  f.sell <#> zum Verkaufen"
+    FOOTER       = "Seite {page}/{total}  ·  {count} Items  ·  Sortierung: {sort}"
     NOT_YOURS    = "Nur der Aufrufer kann blättern!"
 
     SORT_VALUE_LABEL   = "💰 Wert"
     SORT_RARITY_LABEL  = "⭐ Seltenheit"
     SORT_FLOAT_LABEL   = "🔢 Float"
+
+    PAGE_SELECT_PLACEHOLDER  = "Seite wählen…"
+    SELL_SELECT_PLACEHOLDER  = "Items zum Verkaufen wählen…"
+    SELL_RESULT              = "💰 {count} Item(s) für **{total:,}** {CURRENCY_EMOJI} verkauft."
 
     DESCRIPTION = "Zeige Inventar (eigenes oder von @user)"
 

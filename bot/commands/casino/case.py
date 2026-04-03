@@ -1,10 +1,10 @@
-"""CS2-style case opening — f.case (costs 800 Maka)."""
+"""CS2-style case opening — f.case (costs 1450 Maka)."""
 import discord
 from discord import Message
 
 from bot.commands import command
 from bot.commands.casino.wallet import (
-    remove_balance, add_balance, get_balance, add_item, tag_embed,
+    remove_balance, add_balance, get_balance, add_item, remove_item, tag_embed,
     CURRENCY_NAME, CURRENCY_EMOJI,
 )
 from bot.commands.casino.items import create_item, item_full_name, RARITIES
@@ -13,15 +13,11 @@ from bot.strings import Case as S
 CASE_COST = 1450
 CASE_NAME  = "BesterBot Capsule"
 
-# user_id → item dict of the currently undecided case
-_pending_cases: dict[int, dict] = {}
-
 
 def _build_embed(
     item: dict,
     member: discord.Member,
     *,
-    kept: bool | None = None,
     sold_for: int | None = None,
     auto_sold_prev: dict | None = None,
 ) -> discord.Embed:
@@ -47,9 +43,7 @@ def _build_embed(
     if item.get("image_url"):
         embed.set_image(url=item["image_url"])
 
-    if kept is True:
-        embed.add_field(name=S.FIELD_STATUS, value=S.STATUS_KEPT, inline=False)
-    elif sold_for is not None:
+    if sold_for is not None:
         embed.add_field(name=S.FIELD_STATUS, value=S.STATUS_SOLD.format(price=sold_for, CURRENCY_EMOJI=CURRENCY_EMOJI), inline=False)
 
     return tag_embed(embed, member)
@@ -66,10 +60,10 @@ class CaseResultView(discord.ui.View):
 
     def _sync_buttons(self) -> None:
         bal = get_balance(self.user_id)
-        can_open_plain  = bal >= CASE_COST
-        can_open_sell   = (bal + self.item["sell_price"]) >= CASE_COST
-        self.keep_open.disabled = not can_open_plain
-        self.sell_open.disabled = not can_open_sell
+        can_retry      = bal >= CASE_COST
+        can_sell_retry = (bal + self.item["sell_price"]) >= CASE_COST
+        self.retry_btn.disabled      = not can_retry
+        self.sell_open_btn.disabled  = not can_sell_retry
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.user_id:
@@ -81,24 +75,17 @@ class CaseResultView(discord.ui.View):
         for child in self.children:
             child.disabled = True
 
-    # ── helpers shared between the "& nochmal" buttons ───────────────────────
-    def _resolve_keep(self) -> None:
-        self._done = True
-        add_item(self.user_id, self.item)
-        _pending_cases.pop(self.user_id, None)
-
-    def _resolve_sell(self) -> int:
-        self._done = True
+    def _sell_current(self) -> int:
         price = self.item["sell_price"]
+        remove_item(self.user_id, self.item["id"])
         add_balance(self.user_id, price)
-        _pending_cases.pop(self.user_id, None)
         return price
 
     def _open_next(self) -> dict:
-        """Charge for and generate the next case item. Raises ValueError if broke."""
+        """Charge for, generate, and add the next case item. Raises ValueError if broke."""
         remove_balance(self.user_id, CASE_COST)
         new_item = create_item()
-        _pending_cases[self.user_id] = new_item
+        add_item(self.user_id, new_item)
         return new_item
 
     def _reset_for(self, new_item: dict) -> None:
@@ -108,36 +95,24 @@ class CaseResultView(discord.ui.View):
             child.disabled = False
         self._sync_buttons()
 
-    # ── 1. Behalten ───────────────────────────────────────────────────────────
-    @discord.ui.button(label=S.KEEP_LABEL, style=discord.ButtonStyle.success, emoji="🎒", row=0)
-    async def keep(self, interaction: discord.Interaction, _: discord.ui.Button):
-        if self._done:
-            return
-        self._resolve_keep()
-        self._disable_all()
-        await interaction.response.edit_message(
-            embed=_build_embed(self.item, self.member, kept=True), view=self
-        )
-
-    # ── 2. Verkaufen ──────────────────────────────────────────────────────────
+    # ── 1. Verkaufen ──────────────────────────────────────────────────────────
     @discord.ui.button(label=S.SELL_LABEL, style=discord.ButtonStyle.danger, emoji="💰", row=0)
     async def sell_btn(self, interaction: discord.Interaction, _: discord.ui.Button):
         if self._done:
             return
-        price = self._resolve_sell()
+        self._done = True
+        price = self._sell_current()
         self._disable_all()
         await interaction.response.edit_message(
             embed=_build_embed(self.item, self.member, sold_for=price), view=self
         )
 
-    # ── 3. Behalten & Noch mal ────────────────────────────────────────────────
-    @discord.ui.button(label=S.KEEP_OPEN_LABEL, style=discord.ButtonStyle.success,
-                       emoji="🎁", row=1)
-    async def keep_open(self, interaction: discord.Interaction, _: discord.ui.Button):
+    # ── 2. Nochmal ────────────────────────────────────────────────────────────
+    @discord.ui.button(label=S.RETRY_LABEL, style=discord.ButtonStyle.success, emoji="🎁", row=0)
+    async def retry_btn(self, interaction: discord.Interaction, _: discord.ui.Button):
         if self._done:
             return
-        kept_item = self.item
-        self._resolve_keep()
+        self._done = True
         try:
             new_item = self._open_next()
         except ValueError:
@@ -151,14 +126,14 @@ class CaseResultView(discord.ui.View):
             embed=_build_embed(new_item, self.member), view=self
         )
 
-    # ── 4. Verkaufen & Noch mal ───────────────────────────────────────────────
-    @discord.ui.button(label=S.SELL_OPEN_LABEL, style=discord.ButtonStyle.danger,
-                       emoji="🎁", row=1)
-    async def sell_open(self, interaction: discord.Interaction, _: discord.ui.Button):
+    # ── 3. Verkaufen & Nochmal ────────────────────────────────────────────────
+    @discord.ui.button(label=S.SELL_OPEN_LABEL, style=discord.ButtonStyle.secondary, emoji="🎁", row=1)
+    async def sell_open_btn(self, interaction: discord.Interaction, _: discord.ui.Button):
         if self._done:
             return
         sold_item = self.item
-        self._resolve_sell()
+        self._done = True
+        self._sell_current()
         try:
             new_item = self._open_next()
         except ValueError:
@@ -174,9 +149,6 @@ class CaseResultView(discord.ui.View):
 
     # ── timeout ───────────────────────────────────────────────────────────────
     async def on_timeout(self) -> None:
-        if not self._done and _pending_cases.get(self.user_id, {}).get("id") == self.item["id"]:
-            add_balance(self.user_id, self.item["sell_price"])
-            _pending_cases.pop(self.user_id, None)
         self._disable_all()
 
 
@@ -191,15 +163,8 @@ async def case_command(message: Message, args: list[str]):
         )
         return
 
-    # Auto-sell any pending unanswered case
-    auto_sold = None
-    prev = _pending_cases.pop(message.author.id, None)
-    if prev:
-        add_balance(message.author.id, prev["sell_price"])
-        auto_sold = prev
-
     item = create_item()
-    _pending_cases[message.author.id] = item
-    embed = _build_embed(item, message.author, auto_sold_prev=auto_sold)
+    add_item(message.author.id, item)
+    embed = _build_embed(item, message.author)
     view  = CaseResultView(message.author.id, message.author, item)
     await message.reply(embed=embed, view=view)

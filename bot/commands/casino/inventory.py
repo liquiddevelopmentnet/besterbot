@@ -5,7 +5,7 @@ import discord
 from discord import Message
 
 from bot.commands import command
-from bot.commands.casino.wallet import get_inventory, tag_embed, CURRENCY_EMOJI
+from bot.commands.casino.wallet import get_inventory, remove_item, add_balance, tag_embed, CURRENCY_EMOJI
 from bot.commands.casino.items import item_full_name, RARITIES, RARITY_ORDER
 from bot.strings import Inventory as S
 
@@ -70,10 +70,8 @@ def _inv_embed(
     embed.description = "\n\n".join(lines)
     embed.add_field(name=S.FIELD_WORTH, value=f"**{total_value:,}** {CURRENCY_EMOJI}", inline=True)
     embed.add_field(name=S.FIELD_ITEMS, value=rarity_str or "—",                       inline=True)
-
-    sell_hint = S.SELL_HINT if own else ""
     embed.set_footer(
-        text=S.FOOTER.format(page=page + 1, total=total_pages, count=len(items), sort=sort_label, sell_hint=sell_hint)
+        text=S.FOOTER.format(page=page + 1, total=total_pages, count=len(items), sort=sort_label)
     )
 
     thumb_item = max(page_items, key=lambda it: RARITY_ORDER.index(it["rarity"]))
@@ -88,35 +86,27 @@ class InventoryView(discord.ui.View):
         self,
         viewer_id: int,
         target: discord.Member,
-        raw_items: list,       # unsorted original list
+        raw_items: list,
         *,
         own: bool = True,
         sort_mode: str = "default",
     ):
         super().__init__(timeout=120)
-        self.viewer_id  = viewer_id
-        self.target     = target
-        self.raw_items  = raw_items
-        self.own        = own
-        self.sort_mode  = sort_mode
-        self.items      = _sort_items(raw_items, sort_mode)
-        self.page       = 0
+        self.viewer_id   = viewer_id
+        self.target      = target
+        self.raw_items   = raw_items
+        self.own         = own
+        self.sort_mode   = sort_mode
+        self.items       = _sort_items(raw_items, sort_mode)
+        self.page        = 0
         self.total_pages = max(1, math.ceil(len(self.items) / ITEMS_PER_PAGE))
-        self._sync()
+        self._rebuild()
 
-    def _sync(self) -> None:
-        self.prev_btn.disabled    = self.page == 0
-        self.next_btn.disabled    = self.page >= self.total_pages - 1
-        # highlight active sort button
-        self.sort_value_btn.style  = (
-            discord.ButtonStyle.primary if self.sort_mode == "value"  else discord.ButtonStyle.secondary
-        )
-        self.sort_rarity_btn.style = (
-            discord.ButtonStyle.primary if self.sort_mode == "rarity" else discord.ButtonStyle.secondary
-        )
-        self.sort_float_btn.style  = (
-            discord.ButtonStyle.primary if self.sort_mode == "float"  else discord.ButtonStyle.secondary
-        )
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.viewer_id:
+            await interaction.response.send_message(S.NOT_YOURS, ephemeral=True)
+            return False
+        return True
 
     def _current_embed(self) -> discord.Embed:
         return _inv_embed(
@@ -124,54 +114,104 @@ class InventoryView(discord.ui.View):
             self.target, self.sort_mode, own=self.own,
         )
 
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.user.id != self.viewer_id:
-            await interaction.response.send_message(
-                S.NOT_YOURS, ephemeral=True
+    def _page_items(self) -> list:
+        start = self.page * ITEMS_PER_PAGE
+        return self.items[start : start + ITEMS_PER_PAGE]
+
+    def _rebuild(self) -> None:
+        self.clear_items()
+
+        # ── Row 0: sort buttons ───────────────────────────────────────────────
+        for mode, (label, _) in [
+            ("value",  (S.SORT_VALUE_LABEL,  None)),
+            ("rarity", (S.SORT_RARITY_LABEL, None)),
+            ("float",  (S.SORT_FLOAT_LABEL,  None)),
+        ]:
+            btn = discord.ui.Button(
+                label=label,
+                style=discord.ButtonStyle.primary if self.sort_mode == mode else discord.ButtonStyle.secondary,
+                row=0,
             )
-            return False
-        return True
+            captured_mode = mode
+            async def _sort_cb(interaction: discord.Interaction, _btn=None, _mode=captured_mode):
+                self.sort_mode   = "default" if self.sort_mode == _mode else _mode
+                self.items       = _sort_items(self.raw_items, self.sort_mode)
+                self.page        = 0
+                self.total_pages = max(1, math.ceil(len(self.items) / ITEMS_PER_PAGE))
+                self._rebuild()
+                await interaction.response.edit_message(embed=self._current_embed(), view=self)
+            btn.callback = _sort_cb
+            self.add_item(btn)
 
-    # ── pagination ────────────────────────────────────────────────────────────
-    @discord.ui.button(label="◀", style=discord.ButtonStyle.secondary, row=0)  # navigation arrow — not extracted
-    async def prev_btn(self, interaction: discord.Interaction, _: discord.ui.Button):
-        self.page -= 1
-        self._sync()
-        await interaction.response.edit_message(embed=self._current_embed(), view=self)
+        # ── Row 1: page Select (only when more than 1 page) ──────────────────
+        if self.total_pages > 1:
+            # Discord Select options capped at 25
+            max_opts = min(self.total_pages, 25)
+            options = [
+                discord.SelectOption(
+                    label=f"Seite {p + 1} / {self.total_pages}",
+                    value=str(p),
+                    default=(p == self.page),
+                )
+                for p in range(max_opts)
+            ]
+            page_select = discord.ui.Select(
+                placeholder=S.PAGE_SELECT_PLACEHOLDER,
+                options=options,
+                row=1,
+            )
+            async def _page_cb(interaction: discord.Interaction):
+                self.page = int(page_select.values[0])
+                self._rebuild()
+                await interaction.response.edit_message(embed=self._current_embed(), view=self)
+            page_select.callback = _page_cb
+            self.add_item(page_select)
 
-    @discord.ui.button(label="▶", style=discord.ButtonStyle.secondary, row=0)
-    async def next_btn(self, interaction: discord.Interaction, _: discord.ui.Button):
-        self.page += 1
-        self._sync()
-        await interaction.response.edit_message(embed=self._current_embed(), view=self)
-
-    # ── sort buttons ──────────────────────────────────────────────────────────
-    @discord.ui.button(label=S.SORT_VALUE_LABEL, style=discord.ButtonStyle.secondary, row=1)
-    async def sort_value_btn(self, interaction: discord.Interaction, _: discord.ui.Button):
-        self.sort_mode  = "default" if self.sort_mode == "value" else "value"
-        self.items      = _sort_items(self.raw_items, self.sort_mode)
-        self.page       = 0
-        self.total_pages = max(1, math.ceil(len(self.items) / ITEMS_PER_PAGE))
-        self._sync()
-        await interaction.response.edit_message(embed=self._current_embed(), view=self)
-
-    @discord.ui.button(label=S.SORT_RARITY_LABEL, style=discord.ButtonStyle.secondary, row=1)
-    async def sort_rarity_btn(self, interaction: discord.Interaction, _: discord.ui.Button):
-        self.sort_mode  = "default" if self.sort_mode == "rarity" else "rarity"
-        self.items      = _sort_items(self.raw_items, self.sort_mode)
-        self.page       = 0
-        self.total_pages = max(1, math.ceil(len(self.items) / ITEMS_PER_PAGE))
-        self._sync()
-        await interaction.response.edit_message(embed=self._current_embed(), view=self)
-
-    @discord.ui.button(label=S.SORT_FLOAT_LABEL, style=discord.ButtonStyle.secondary, row=1)
-    async def sort_float_btn(self, interaction: discord.Interaction, _: discord.ui.Button):
-        self.sort_mode  = "default" if self.sort_mode == "float" else "float"
-        self.items      = _sort_items(self.raw_items, self.sort_mode)
-        self.page       = 0
-        self.total_pages = max(1, math.ceil(len(self.items) / ITEMS_PER_PAGE))
-        self._sync()
-        await interaction.response.edit_message(embed=self._current_embed(), view=self)
+        # ── Row 2: sell multi-select (own inventory, non-empty page) ─────────
+        if self.own and self.items:
+            page_items = self._page_items()
+            sell_options = []
+            for item in page_items:
+                info  = RARITIES[item["rarity"]]
+                label = item_full_name(item)[:100]
+                desc  = f"{item['sell_price']:,} {CURRENCY_EMOJI}"[:100]
+                sell_options.append(
+                    discord.SelectOption(
+                        label=label,
+                        description=desc,
+                        value=item["id"],
+                        emoji=info["emoji"],
+                    )
+                )
+            sell_select = discord.ui.Select(
+                placeholder=S.SELL_SELECT_PLACEHOLDER,
+                options=sell_options,
+                min_values=1,
+                max_values=len(sell_options),
+                row=2,
+            )
+            async def _sell_cb(interaction: discord.Interaction):
+                sold_ids    = set(sell_select.values)
+                sold_items  = [it for it in self.items if it["id"] in sold_ids]
+                total_price = sum(it["sell_price"] for it in sold_items)
+                for it in sold_items:
+                    remove_item(self.viewer_id, it["id"])
+                    add_balance(self.viewer_id, it["sell_price"])
+                # Refresh view with updated inventory
+                self.raw_items   = get_inventory(self.viewer_id)
+                self.items       = _sort_items(self.raw_items, self.sort_mode)
+                self.total_pages = max(1, math.ceil(len(self.items) / ITEMS_PER_PAGE))
+                self.page        = min(self.page, max(0, self.total_pages - 1))
+                self._rebuild()
+                await interaction.response.edit_message(
+                    content=S.SELL_RESULT.format(
+                        count=len(sold_items), total=total_price, CURRENCY_EMOJI=CURRENCY_EMOJI
+                    ),
+                    embed=self._current_embed(),
+                    view=self,
+                )
+            sell_select.callback = _sell_cb
+            self.add_item(sell_select)
 
     async def on_timeout(self) -> None:
         for child in self.children:
@@ -190,7 +230,6 @@ async def inventory_command(message: Message, args: list[str]):
         target = message.author
         own    = True
 
-    # Optional sort arg: f.inventory value / f.inventory rarity / f.inventory float
     sort_mode = "default"
     for a in args:
         if a.lower() in SORT_MODES:
