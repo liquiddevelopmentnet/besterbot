@@ -10,12 +10,17 @@ from bot.strings import Balance as S
 MEDALS = {0: "\U0001f947", 1: "\U0001f948", 2: "\U0001f949"}
 
 
-def _lb_embed(guild: discord.Guild, requester: discord.Member) -> discord.Embed:
+async def _lb_embed(guild: discord.Guild, requester: discord.Member) -> discord.Embed:
     board = get_leaderboard(10)
     lines = []
     for i, (uid, bal) in enumerate(board):
-        member = guild.fetch_member(int(uid))
-        name   = member.display_name if member else f"User {uid}"
+        member = guild.get_member(int(uid))
+        if member is None:
+            try:
+                member = await guild.fetch_member(int(uid))
+            except discord.NotFound:
+                pass
+        name = member.display_name if member else f"User {uid}"
         lines.append(f"{MEDALS.get(i, f'`{i+1}.`')} **{name}** — {bal:,} {CURRENCY_EMOJI}")
     embed = discord.Embed(
         title=f"{CURRENCY_EMOJI} {CURRENCY_NAME} Leaderboard",
@@ -47,7 +52,7 @@ class BalanceView(discord.ui.View):
 
     @discord.ui.button(label=S.LEADERBOARD_LABEL, style=discord.ButtonStyle.secondary, emoji="\U0001f3c6")
     async def leaderboard(self, interaction: discord.Interaction, _: discord.ui.Button):
-        embed = _lb_embed(interaction.guild, self.member)
+        embed = await _lb_embed(interaction.guild, self.member)
         await interaction.response.send_message(embed=embed)
 
     async def on_timeout(self):
