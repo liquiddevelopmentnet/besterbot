@@ -32,7 +32,7 @@ RARITIES: dict[str, dict] = {
         "color":      0x4FC3F7,
         "label":      "Mil-Spec Grade",
         "weight":     5200,   # 52 %
-        "sell_range": (1, 4),
+        "sell_range": (20, 200),
     },
     "blue": {
         "name":       "Restricted",
@@ -40,7 +40,7 @@ RARITIES: dict[str, dict] = {
         "color":      0x4169E1,
         "label":      "Restricted",
         "weight":     3500,   # 35 %
-        "sell_range": (15, 48),
+        "sell_range": (150, 1_000),
     },
     "purple": {
         "name":       "Classified",
@@ -48,7 +48,7 @@ RARITIES: dict[str, dict] = {
         "color":      0x8A2BE2,
         "label":      "Classified",
         "weight":     800,    #  8 %
-        "sell_range": (200, 600),
+        "sell_range": (1_000, 5_000),
     },
     "pink": {
         "name":       "Covert",
@@ -56,7 +56,7 @@ RARITIES: dict[str, dict] = {
         "color":      0xFF69B4,
         "label":      "Covert",
         "weight":     400,    #  4 %
-        "sell_range": (2_400, 7_100),
+        "sell_range": (8_000, 30_000),
     },
     "gold": {
         "name":       "Rare Special",
@@ -64,7 +64,7 @@ RARITIES: dict[str, dict] = {
         "color":      0xFFD700,
         "label":      "★ Rare Special",
         "weight":     100,    #  1 %
-        "sell_range": (32_000, 95_000),
+        "sell_range": (50_000, 200_000),
     },
 }
 
