@@ -8,7 +8,7 @@ from discord import Message
 
 from bot.commands import command
 from bot.commands.casino.wallet import (
-    add_balance, get_cooldown, set_cooldown, tag_embed,
+    add_balance, get_cooldown, set_cooldown, log_earning, tag_embed,
     CURRENCY_NAME, CURRENCY_EMOJI,
 )
 from bot.strings import Daily as S
@@ -50,6 +50,7 @@ async def daily_command(message: Message, args: list[str]):
         return
 
     new_bal = add_balance(message.author.id, _DAILY_AMOUNT)
+    log_earning(message.author.id, _DAILY_AMOUNT)
     set_cooldown(message.author.id, _DAILY_KEY, today)
 
     embed = discord.Embed(

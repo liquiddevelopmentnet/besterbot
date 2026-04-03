@@ -5,7 +5,7 @@ from discord import Message
 
 from bot.commands import command
 from bot.commands.casino.wallet import (
-    remove_balance, add_balance, tag_embed, CURRENCY_NAME, CURRENCY_EMOJI, MIN_BET,
+    remove_balance, add_balance, log_earning, tag_embed, CURRENCY_NAME, CURRENCY_EMOJI, MIN_BET,
     resolve_bet,
 )
 from bot.strings import Roulette as S
@@ -42,6 +42,7 @@ def _spin(bet: int, choice: str | int,
 
     if winnings > 0:
         add_balance(user_id, winnings)
+        log_earning(user_id, winnings)
         desc  = S.WIN_DESC.format(winnings=winnings, CURRENCY_EMOJI=CURRENCY_EMOJI)
         color = 0x2ECC71
     else:

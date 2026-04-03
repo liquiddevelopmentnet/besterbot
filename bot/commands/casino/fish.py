@@ -6,7 +6,7 @@ from discord import Message
 
 from bot.commands import command
 from bot.commands.casino.wallet import (
-    add_balance, get_cooldown, set_cooldown, tag_embed,
+    add_balance, get_cooldown, set_cooldown, log_earning, tag_embed,
     CURRENCY_EMOJI,
 )
 from bot.strings import Fish as S
@@ -30,6 +30,7 @@ async def fish_command(message: Message, args: list[str]):
     low, high, emoji, name = random.choice(S.CATCHES)
     earned = random.randint(low, high)
     new_bal = add_balance(message.author.id, earned)
+    log_earning(message.author.id, earned)
     set_cooldown(message.author.id, _KEY, time.time())
 
     embed = tag_embed(discord.Embed(

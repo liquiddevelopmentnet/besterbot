@@ -5,7 +5,7 @@ from discord import Message
 
 from bot.commands import command
 from bot.commands.casino.wallet import (
-    remove_balance, add_balance, tag_embed,
+    remove_balance, add_balance, log_earning, tag_embed,
     CURRENCY_NAME, CURRENCY_EMOJI, MIN_BET, resolve_bet,
 )
 from bot.strings import Mines as S
@@ -176,6 +176,7 @@ class MinesView(discord.ui.View):
                     self.game_over = True
                     payout = int(self.bet * _multiplier(self.safe_found))
                     add_balance(self.user_id, payout)
+                    log_earning(self.user_id, payout)
                     self._reveal_mines_safe()
                     self._lock_board()
                     embed = _build_embed(self.member, self.bet, self.safe_found, cashed_out=True)
@@ -210,6 +211,7 @@ class MinesView(discord.ui.View):
             # Cash Out
             payout = int(self.bet * _multiplier(self.safe_found))
             add_balance(self.user_id, payout)
+            log_earning(self.user_id, payout)
             self._reveal_mines_safe()
             embed = _build_embed(self.member, self.bet, self.safe_found, cashed_out=True)
 
@@ -221,6 +223,7 @@ class MinesView(discord.ui.View):
         if self.safe_found > 0:
             payout = int(self.bet * _multiplier(self.safe_found))
             add_balance(self.user_id, payout)
+            log_earning(self.user_id, payout)
             self._reveal_mines_safe()
         else:
             add_balance(self.user_id, self.bet)

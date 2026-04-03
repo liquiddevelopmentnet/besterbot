@@ -6,7 +6,7 @@ from discord import Message
 
 from bot.commands import command
 from bot.commands.casino.wallet import (
-    add_balance, get_cooldown, set_cooldown, tag_embed,
+    add_balance, get_cooldown, set_cooldown, log_earning, tag_embed,
     CURRENCY_EMOJI,
 )
 from bot.strings import Beg as S
@@ -27,6 +27,7 @@ async def beg_command(message: Message, args: list[str]):
 
     earned = random.randint(500, 2500)
     new_bal = add_balance(message.author.id, earned)
+    log_earning(message.author.id, earned)
     set_cooldown(message.author.id, _KEY, time.time())
 
     embed = tag_embed(discord.Embed(

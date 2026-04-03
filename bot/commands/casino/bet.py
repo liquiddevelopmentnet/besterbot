@@ -5,7 +5,7 @@ from discord import Message
 
 from bot.commands import command
 from bot.commands.casino.wallet import (
-    remove_balance, add_balance, get_balance, tag_embed, CURRENCY_NAME, CURRENCY_EMOJI, MIN_BET,
+    remove_balance, add_balance, get_balance, log_earning, tag_embed, CURRENCY_NAME, CURRENCY_EMOJI, MIN_BET,
     resolve_bet,
 )
 from bot.strings import Bet as S
@@ -42,6 +42,7 @@ class BetView(discord.ui.View):
         loser = self.target if winner == self.challenger else self.challenger
         pot = self.bet * 2
         add_balance(winner.id, pot)
+        log_earning(winner.id, pot)
 
         embed = tag_embed(discord.Embed(
             title=S.RESULT_TITLE,

@@ -6,7 +6,7 @@ from discord import Message
 
 from bot.commands import command
 from bot.commands.casino.wallet import (
-    add_balance, get_cooldown, set_cooldown, tag_embed,
+    add_balance, get_cooldown, set_cooldown, log_earning, tag_embed,
     CURRENCY_EMOJI, CURRENCY_NAME,
 )
 from bot.strings import Finanzspritze as S
@@ -27,6 +27,7 @@ async def finanzspritze_command(message: Message, args: list[str]):
             return
 
     new_bal = add_balance(message.author.id, _AMOUNT)
+    log_earning(message.author.id, _AMOUNT)
     set_cooldown(message.author.id, _KEY, time.time())
 
     embed = tag_embed(discord.Embed(

@@ -3,7 +3,7 @@ from discord import Message
 
 from bot.commands import command
 from bot.commands.casino.wallet import (
-    remove_balance, add_balance, tag_embed, CURRENCY_NAME, CURRENCY_EMOJI, MIN_BET,
+    remove_balance, add_balance, log_earning, tag_embed, CURRENCY_NAME, CURRENCY_EMOJI, MIN_BET,
     resolve_bet,
 )
 from bot.commands.casino.cards import Deck, bj_total, hand_str
@@ -68,6 +68,7 @@ class BlackjackView(discord.ui.View):
         if d_val > 21 or p_val > d_val:
             winnings = int(self.bet * 2.1)  # 2.1x → ~106% RTP on regular wins
             add_balance(self.player_id, winnings)
+            log_earning(self.player_id, winnings)
             await self._finish(interaction,
                                S.WIN_RESULT.format(winnings=winnings, CURRENCY_EMOJI=CURRENCY_EMOJI),
                                0x2ECC71)
@@ -145,6 +146,7 @@ async def blackjack_command(message: Message, args: list[str]):
     if bj_total(player_hand) == 21:
         winnings = int(bet * 3)  # 3x natural → extra reward for lucky deal
         add_balance(message.author.id, winnings)
+        log_earning(message.author.id, winnings)
         embed = tag_embed(discord.Embed(
             title=S.TITLE.format(bet=bet, CURRENCY_EMOJI=CURRENCY_EMOJI),
             color=0xFFD700,

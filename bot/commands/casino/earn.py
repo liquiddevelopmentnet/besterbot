@@ -9,7 +9,7 @@ from discord import Message
 from bot.commands import command
 from bot.commands.casino.wallet import (
     get_cooldown, set_cooldown, add_balance, force_remove_balance,
-    tag_embed, CURRENCY_EMOJI, CURRENCY_NAME,
+    log_earning, tag_embed, CURRENCY_EMOJI, CURRENCY_NAME,
 )
 from bot.strings import Earn as S
 
@@ -75,6 +75,7 @@ def _status(user_id: int, key: str, cd_secs: int) -> tuple[bool, int | None]:
 def _run_beg(user_id: int) -> tuple[str, str, int, int]:
     earned = random.randint(500, 2500)
     new_bal = add_balance(user_id, earned)
+    log_earning(user_id, earned)
     set_cooldown(user_id, "last_beg", time.time())
     return (
         S.BEG_TITLE,
@@ -88,6 +89,7 @@ def _run_fish(user_id: int) -> tuple[str, str, int, int]:
     low, high, emoji, name = random.choice(S.CATCHES)
     earned = random.randint(low, high)
     new_bal = add_balance(user_id, earned)
+    log_earning(user_id, earned)
     set_cooldown(user_id, "last_fish", time.time())
     return (
         S.FISH_TITLE.format(emoji=emoji),
@@ -101,6 +103,7 @@ def _run_work(user_id: int) -> tuple[str, str, int, int]:
     emoji, desc = random.choice(S.JOBS)
     earned = random.randint(2000, 5000)
     new_bal = add_balance(user_id, earned)
+    log_earning(user_id, earned)
     set_cooldown(user_id, "last_work", time.time())
     return (
         S.WORK_TITLE.format(emoji=emoji),
@@ -115,6 +118,7 @@ def _run_crime(user_id: int) -> tuple[str, str, int, int]:
     if random.random() < 0.70:
         earned = random.randint(8000, 13000)
         new_bal = add_balance(user_id, earned)
+        log_earning(user_id, earned)
         return (
             S.CRIME_SUCCESS_TITLE,
             S.CRIME_SUCCESS_DESC.format(crime=random.choice(S.SUCCESS_CRIMES), earned=earned, CURRENCY_EMOJI=CURRENCY_EMOJI),
@@ -137,6 +141,7 @@ def _run_scam(user_id: int) -> tuple[str, str, int, int]:
     if random.random() < 0.60:
         earned = random.randint(10000, 16000)
         new_bal = add_balance(user_id, earned)
+        log_earning(user_id, earned)
         return (
             S.SCAM_SUCCESS_TITLE,
             S.SCAM_SUCCESS_DESC.format(scam=random.choice(S.SUCCESS_SCAMS), earned=earned, CURRENCY_EMOJI=CURRENCY_EMOJI),
@@ -157,6 +162,7 @@ def _run_scam(user_id: int) -> tuple[str, str, int, int]:
 def _run_daily(user_id: int) -> tuple[str, str, int, int]:
     today = datetime.now(tz=_CET).strftime("%Y-%m-%d")
     new_bal = add_balance(user_id, _DAILY_AMOUNT)
+    log_earning(user_id, _DAILY_AMOUNT)
     set_cooldown(user_id, "last_daily", today)
     return (
         S.DAILY_TITLE.format(CURRENCY_EMOJI=CURRENCY_EMOJI),
@@ -171,6 +177,7 @@ _FINANZSPRITZE_AMOUNT = 10_000
 
 def _run_finanzspritze(user_id: int) -> tuple[str, str, int, int]:
     new_bal = add_balance(user_id, _FINANZSPRITZE_AMOUNT)
+    log_earning(user_id, _FINANZSPRITZE_AMOUNT)
     set_cooldown(user_id, "last_finanzspritze", time.time())
     return (
         S.FINANZ_TITLE,

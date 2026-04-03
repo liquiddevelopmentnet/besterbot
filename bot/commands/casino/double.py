@@ -5,7 +5,7 @@ from discord import Message
 
 from bot.commands import command
 from bot.commands.casino.wallet import (
-    remove_balance, add_balance, tag_embed, CURRENCY_NAME, CURRENCY_EMOJI, MIN_BET,
+    remove_balance, add_balance, log_earning, tag_embed, CURRENCY_NAME, CURRENCY_EMOJI, MIN_BET,
     resolve_bet,
 )
 from bot.strings import Double as S
@@ -16,6 +16,7 @@ def _play(bet: int, user_id: int, member: discord.Member) -> discord.Embed:
     if win:
         winnings = bet * 2
         add_balance(user_id, winnings)
+        log_earning(user_id, winnings)
         embed = discord.Embed(
             title=S.TITLE,
             description=S.WIN_DESC.format(winnings=winnings, CURRENCY_EMOJI=CURRENCY_EMOJI),

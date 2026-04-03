@@ -3,7 +3,7 @@ from discord import Message
 
 from bot.commands import command
 from bot.commands.casino.wallet import (
-    remove_balance, add_balance, tag_embed, CURRENCY_NAME, CURRENCY_EMOJI, MIN_BET,
+    remove_balance, add_balance, log_earning, tag_embed, CURRENCY_NAME, CURRENCY_EMOJI, MIN_BET,
     resolve_bet,
 )
 from bot.commands.casino.cards import Deck, hand_str, evaluate_poker, POKER_PAYOUTS
@@ -70,6 +70,7 @@ class PokerView(discord.ui.View):
         if multiplier > 0:
             winnings = self.bet * multiplier
             add_balance(self.player_id, winnings)
+            log_earning(self.player_id, winnings)
             profit = winnings - self.bet
             if profit > 0:
                 result = S.WIN_RESULT.format(hand_name=hand_name, profit=profit, CURRENCY_EMOJI=CURRENCY_EMOJI)
@@ -104,6 +105,7 @@ class PokerView(discord.ui.View):
 
         if multiplier > 0:
             add_balance(self.player_id, self.bet * multiplier)
+            log_earning(self.player_id, self.bet * multiplier)
 
         for item in self.children:
             item.disabled = True

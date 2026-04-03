@@ -6,3 +6,4 @@ faceit
 requests
 dotenv
 python-dotenv
+matplotlib

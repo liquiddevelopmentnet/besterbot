@@ -81,6 +81,17 @@ def _create_schema(conn: sqlite3.Connection) -> None:
 
         CREATE INDEX IF NOT EXISTS idx_items_user ON items(user_id);
 
+        -- Cumulative gambling / earning income log for .bip graphs.
+        -- Each row is one income event (earn, sell, game win, etc.).
+        CREATE TABLE IF NOT EXISTS earnings (
+            id      INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+            amount  INTEGER NOT NULL,
+            ts      REAL NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_earnings_user_ts ON earnings(user_id, ts);
+
         COMMIT;
     """)
 

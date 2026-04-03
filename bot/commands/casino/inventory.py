@@ -5,7 +5,7 @@ import discord
 from discord import Message
 
 from bot.commands import command
-from bot.commands.casino.wallet import get_inventory, remove_item, add_balance, tag_embed, CURRENCY_EMOJI
+from bot.commands.casino.wallet import get_inventory, remove_item, add_balance, log_earning, tag_embed, CURRENCY_EMOJI
 from bot.commands.casino.items import item_full_name, RARITIES, RARITY_ORDER
 from bot.strings import Inventory as S
 
@@ -197,6 +197,7 @@ class InventoryView(discord.ui.View):
                 for it in sold_items:
                     remove_item(self.viewer_id, it["id"])
                     add_balance(self.viewer_id, it["sell_price"])
+                    log_earning(self.viewer_id, it["sell_price"])
                 # Refresh view with updated inventory
                 self.raw_items   = get_inventory(self.viewer_id)
                 self.items       = _sort_items(self.raw_items, self.sort_mode)

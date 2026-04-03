@@ -20,3 +20,4 @@ import bot.commands.casino.bet
 import bot.commands.casino.mines
 import bot.commands.casino.crash
 import bot.commands.casino.casino
+import bot.commands.casino.bip

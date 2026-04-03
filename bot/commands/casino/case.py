@@ -4,8 +4,8 @@ from discord import Message
 
 from bot.commands import command
 from bot.commands.casino.wallet import (
-    remove_balance, add_balance, get_balance, add_item, remove_item, tag_embed,
-    CURRENCY_NAME, CURRENCY_EMOJI,
+    remove_balance, add_balance, get_balance, add_item, remove_item, log_earning,
+    tag_embed, CURRENCY_NAME, CURRENCY_EMOJI,
 )
 from bot.commands.casino.items import create_item, item_full_name, RARITIES
 from bot.strings import Case as S
@@ -79,6 +79,7 @@ class CaseResultView(discord.ui.View):
         price = self.item["sell_price"]
         remove_item(self.user_id, self.item["id"])
         add_balance(self.user_id, price)
+        log_earning(self.user_id, price)
         return price
 
     def _open_next(self) -> dict:

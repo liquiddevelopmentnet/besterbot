@@ -6,7 +6,7 @@ from discord import Message
 
 from bot.commands import command
 from bot.commands.casino.wallet import (
-    add_balance, force_remove_balance, get_cooldown, set_cooldown, tag_embed,
+    add_balance, force_remove_balance, get_cooldown, set_cooldown, log_earning, tag_embed,
     CURRENCY_EMOJI,
 )
 from bot.strings import Scam as S
@@ -33,6 +33,7 @@ async def scam_command(message: Message, args: list[str]):
     if random.random() < _SUCCESS_CHANCE:
         earned = random.randint(10000, 16000)
         new_bal = add_balance(message.author.id, earned)
+        log_earning(message.author.id, earned)
         embed = tag_embed(discord.Embed(
             title=S.SUCCESS_TITLE,
             description=S.SUCCESS_DESC.format(scam=random.choice(S.SUCCESS_SCAMS), earned=earned, CURRENCY_EMOJI=CURRENCY_EMOJI),

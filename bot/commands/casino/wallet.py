@@ -6,6 +6,7 @@ of reading/writing wallets.json on every call.
 """
 
 import threading
+import time
 
 import discord
 
@@ -363,6 +364,40 @@ def get_all_inventories() -> dict[str, list]:
     for row in rows:
         uid = row[1]
         result.setdefault(uid, []).append(_item_row_to_dict(row))
+    return result
+
+
+# ── Earnings log ─────────────────────────────────────────────────────────────
+
+def log_earning(user_id: int, amount: int) -> None:
+    """Record a gambling/earning income event for the .bip graph."""
+    with _lock:
+        uid = str(user_id)
+        _ensure(uid)
+        get_db().execute(
+            "INSERT INTO earnings (user_id, amount, ts) VALUES (?, ?, ?)",
+            (uid, amount, time.time()),
+        )
+
+
+def get_earnings_history(user_id: int) -> list[tuple[float, int]]:
+    """Return [(ts, amount)] sorted by ts for a single user."""
+    uid = str(user_id)
+    rows = get_db().execute(
+        "SELECT ts, amount FROM earnings WHERE user_id = ? ORDER BY ts",
+        (uid,),
+    ).fetchall()
+    return [(row[0], row[1]) for row in rows]
+
+
+def get_all_earnings_history() -> dict[str, list[tuple[float, int]]]:
+    """Return {user_id: [(ts, amount)]} for all users with at least one earning."""
+    rows = get_db().execute(
+        "SELECT user_id, ts, amount FROM earnings ORDER BY user_id, ts",
+    ).fetchall()
+    result: dict[str, list] = {}
+    for uid, ts, amount in rows:
+        result.setdefault(uid, []).append((ts, amount))
     return result
 
 

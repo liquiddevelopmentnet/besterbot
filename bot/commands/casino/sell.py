@@ -4,7 +4,7 @@ from discord import Message
 
 from bot.commands import command
 from bot.commands.casino.wallet import (
-    get_inventory, remove_item, add_balance, tag_embed,
+    get_inventory, remove_item, add_balance, log_earning, tag_embed,
     CURRENCY_EMOJI,
 )
 from bot.commands.casino.items import item_full_name, RARITIES, RARITY_ORDER
@@ -43,6 +43,7 @@ class SellAllConfirmView(discord.ui.View):
             if remove_item(self.user_id, item["id"]) is not None:
                 total += item["sell_price"]
         add_balance(self.user_id, total)
+        log_earning(self.user_id, total)
         for child in self.children:
             child.disabled = True
         embed = discord.Embed(
@@ -153,6 +154,7 @@ async def sell_command(message: Message, args: list[str]):
         return
 
     add_balance(message.author.id, total)
+    log_earning(message.author.id, total)
 
     if len(sold) == 1:
         item = sold[0]

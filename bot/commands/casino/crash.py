@@ -5,7 +5,7 @@ from discord import Message
 
 from bot.commands import command
 from bot.commands.casino.wallet import (
-    remove_balance, add_balance, tag_embed,
+    remove_balance, add_balance, log_earning, tag_embed,
     CURRENCY_NAME, CURRENCY_EMOJI, MIN_BET, resolve_bet,
 )
 from bot.strings import Crash as S
@@ -98,6 +98,7 @@ class CrashView(discord.ui.View):
             if won:
                 payout = int(self.bet * target)
                 add_balance(self.user_id, payout)
+                log_earning(self.user_id, payout)
 
             for item in self.children:
                 item.disabled = True

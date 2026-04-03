@@ -13,7 +13,7 @@ from discord import Message
 from bot.commands import command
 from bot.commands.casino.wallet import (
     add_balance, force_remove_balance, get_balance,
-    get_cooldown, set_cooldown, tag_embed,
+    get_cooldown, set_cooldown, log_earning, tag_embed,
     CURRENCY_NAME, CURRENCY_EMOJI,
 )
 from bot.strings import Steal as S
@@ -68,6 +68,7 @@ async def steal_command(message: Message, args: list[str]):
 
         force_remove_balance(target.id, stolen)
         new_author = add_balance(message.author.id, stolen)
+        log_earning(message.author.id, stolen)
 
         embed = discord.Embed(
             title=S.SUCCESS_TITLE,
