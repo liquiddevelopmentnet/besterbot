@@ -10,7 +10,7 @@ from bot.commands.casino.wallet import (
 from bot.commands.casino.items import create_item, item_full_name, RARITIES
 from bot.strings import Case as S
 
-CASE_COST = 650
+CASE_COST = 1450
 CASE_NAME  = "BesterBot Capsule"
 
 # user_id → item dict of the currently undecided case
