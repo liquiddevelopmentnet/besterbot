@@ -10,7 +10,7 @@ Each class corresponds to one source module.
 
 class Admin:
     USAGE = (
-        "**Admin commands:**\n"
+        "**Admin-Befehle:**\n"
         "`f.admin setbal @user <amount>` — set exact balance\n"
         "`f.admin addbal @user <amount>` — add to balance\n"
         "`f.admin subbal @user <amount>` — subtract from balance (can go negative)\n"
@@ -19,65 +19,65 @@ class Admin:
         "`f.admin viewbal @user` — check any user's balance\n"
     )
     NO_PERMISSION = "🚫 You don't have permission to use this command."
-    UNKNOWN_SUBCOMMAND = "Unknown subcommand `{sub}`.\n\n{usage}"
+    UNKNOWN_SUBCOMMAND = "Unbekannter Subcommand `{sub}`.\n\n{usage}"
 
     # setbal
-    SETBAL_USAGE = "Usage: `f.admin setbal @user <amount>`"
+    SETBAL_USAGE = "Verwendung: `f.admin setbal @user <amount>`"
     SETBAL_TITLE = "✅ Balance Set"
     SETBAL_DESC  = "**{name}** → **{new:,}** {CURRENCY_EMOJI}"
 
     # addbal
-    ADDBAL_USAGE = "Usage: `f.admin addbal @user <amount>`"
+    ADDBAL_USAGE = "Verwendung: `f.admin addbal @user <amount>`"
     ADDBAL_TITLE = "✅ Balance Added"
     ADDBAL_DESC  = "**{name}** +**{amount:,}** → **{new:,}** {CURRENCY_EMOJI}"
 
     # subbal
-    SUBBAL_USAGE = "Usage: `f.admin subbal @user <amount>`"
+    SUBBAL_USAGE = "Verwendung: `f.admin subbal @user <amount>`"
     SUBBAL_TITLE = "✅ Balance Subtracted"
     SUBBAL_DESC  = "**{name}** -**{amount:,}** → **{new:,}** {CURRENCY_EMOJI}"
 
     # removeuser
-    REMOVEUSER_USAGE    = "Usage: `f.admin removeuser @user`"
+    REMOVEUSER_USAGE    = "Verwendung: `f.admin removeuser @user`"
     REMOVEUSER_TITLE    = "🗑️ User Removed"
-    REMOVEUSER_DESC     = "**{name}** has been wiped from the wallet."
+    REMOVEUSER_DESC     = "**{name}** wurde aus dem Wallet radiert wie ein peinlicher Leak."
     NOTFOUND_TITLE      = "⚠️ User Not Found"
-    NOTFOUND_DESC       = "**{name}** has no wallet entry."
+    NOTFOUND_DESC       = "**{name}** hat keinen Wallet-Eintrag. Finanzielle Nichtexistenz."
 
     # resetall
     RESETALL_TITLE = "♻️ All Balances Reset"
-    RESETALL_DESC  = "Every wallet has been set to **{amount:,}** {CURRENCY_EMOJI}."
+    RESETALL_DESC  = "Jedes Wallet wurde auf **{amount:,}** {CURRENCY_EMOJI} zurechtgestutzt."
 
     # viewbal
-    VIEWBAL_USAGE = "Usage: `f.admin viewbal @user`"
+    VIEWBAL_USAGE = "Verwendung: `f.admin viewbal @user`"
     VIEWBAL_TITLE = "👁️ {name}'s Balance"
     VIEWBAL_DESC  = "**{bal:,}** {CURRENCY_EMOJI}"
 
-    DESCRIPTION = "Admin casino controls"
+    DESCRIPTION = "Admin-Kontrolle f?r alles, was nach Geld riecht"
 
 
 # ── Casino / Balance ───────────────────────────────────────────────────────────
 
 class Balance:
-    NOT_YOUR_WALLET = "This isn't your wallet!"
+    NOT_YOUR_WALLET = "Das ist nicht dein Wallet. Finger weg, Finanzgremlin."
     WALLET_TITLE    = "{CURRENCY_EMOJI} Wallet"
     WALLET_DESC     = "**{bal:,}** {CURRENCY_NAME}"
 
-    EARN_MENU_LABEL    = "Earn Menu"
-    LEADERBOARD_LABEL  = "Leaderboard"
+    EARN_MENU_LABEL    = "Geldmen?"
+    LEADERBOARD_LABEL  = "Bestenliste"
 
-    DESCRIPTION = "Check your balance"
+    DESCRIPTION = "Pr?f deinen Kontostand und deine Restw?rde"
 
 
 # ── Casino / Beg ──────────────────────────────────────────────────────────────
 
 class Beg:
     RESPONSES = [
-        "A kind stranger took pity on you.",
-        "Someone threw coins out of a car window.",
-        "You found a crumpled bill on the ground.",
-        "A tourist thought you were a street performer.",
-        "Your sob story actually worked.",
-        "An old lady gave you her grocery change.",
+        "Ein Fremder hatte kurz Mitleid, dann wieder Selbsthass.",
+        "Jemand warf Kleingeld aus dem Auto. Vermutlich f?r Ruhe, nicht aus Liebe.",
+        "Du hast einen zerknitterten Schein vom Boden gerettet. Er hatte es auch nicht leicht.",
+        "Ein Tourist hielt dich f?r Stra?enkunst. Technisch gesehen war's Mitleid mit Kulturbonus.",
+        "Deine Leidensgeschichte war so gut, dass selbst du fast dran geglaubt h?ttest.",
+        "Eine Oma gab dir ihr Wechselgeld und direkt noch stilles Urteil dazu.",
     ]
 
     COOLDOWN    = "🙏 People are tired of you. Wait **{m}m {s}s** before begging again."
@@ -85,58 +85,58 @@ class Beg:
     DESCRIPTION = "{response}\n+**{earned:,}** {CURRENCY_EMOJI}"
     FOOTER      = "Balance: {new_bal:,} {CURRENCY_EMOJI} • Cooldown: 4min"
 
-    COMMAND_DESCRIPTION = "Beg for spare change"
+    COMMAND_DESCRIPTION = "Bettel um Kleingeld und ein bisschen Menschenverachtung"
 
 
 # ── Casino / Bet ──────────────────────────────────────────────────────────────
 
 class Bet:
-    NOT_FOR_YOU         = "This challenge isn't for you!"
-    NOT_ENOUGH_CURRENCY = "You don't have enough {CURRENCY_NAME}!"
-    CANT_BET_SELF       = "You can't bet against yourself."
-    CANT_BET_BOT        = "You can't bet against a bot."
-    INVALID_AMOUNT      = "Amount must be a positive number (e.g. `500`, `all`, `50%`)."
-    MIN_BET_MSG         = "Minimum bet is {MIN_BET} {CURRENCY_EMOJI}"
-    TARGET_BROKE        = "**{name}** doesn't have enough {CURRENCY_NAME}!"
-    SENDER_BROKE        = "You don't have enough {CURRENCY_NAME}!"
+    NOT_FOR_YOU         = "Diese Wette ist nicht f?r dich. Zuschauen ist kostenlos."
+    NOT_ENOUGH_CURRENCY = "Du hast nicht genug {CURRENCY_NAME}. Gro?e Fresse, kleines Wallet."
+    CANT_BET_SELF       = "Gegen dich selbst wetten ist selbst hier zu erb?rmlich."
+    CANT_BET_BOT        = "Gegen einen Bot wetten ist wie Schach gegen den Toaster verlieren."
+    INVALID_AMOUNT      = "Der Betrag muss positiv sein, z. B. `500`, `all` oder `50%`."
+    MIN_BET_MSG         = "Mindesteinsatz sind {MIN_BET} {CURRENCY_EMOJI}"
+    TARGET_BROKE        = "**{name}** hat nicht genug {CURRENCY_NAME}. Armut ist Teamarbeit."
+    SENDER_BROKE        = "Du hast nicht genug {CURRENCY_NAME}. Das Drama scheitert am Budget."
 
     RESULT_TITLE = "\U0001f3b2 50:50 Bet \u2014 Result"
-    COIN_FLIP_NAME  = "\U0001fa99 Coin Flip"
+    COIN_FLIP_NAME  = "\U0001fa99 M?nzwurf"
     COIN_FLIP_VALUE = (
-        "**{winner}** wins **{pot:,}** {CURRENCY_EMOJI}!\n"
-        "**{loser}** loses their **{bet:,}** {CURRENCY_EMOJI}."
+        "**{winner}** gewinnt **{pot:,}** {CURRENCY_EMOJI}!\n"
+        "**{loser}** verliert **{bet:,}** {CURRENCY_EMOJI}."
     )
 
-    DECLINED_TITLE = "\U0001f3b2 50:50 Bet \u2014 Declined"
-    DECLINED_DESC  = "**{name}** declined. Bet refunded."
+    DECLINED_TITLE = "\U0001f3b2 50:50-Wette \u2014 Abgelehnt"
+    DECLINED_DESC  = "**{name}** hat gekniffen. Einsatz zur?ck, Ehre weg."
 
-    EXPIRED_TITLE = "\U0001f3b2 50:50 Bet \u2014 Expired"
-    EXPIRED_DESC  = "**{name}** didn't respond. Bet refunded."
+    EXPIRED_TITLE = "\U0001f3b2 50:50-Wette \u2014 Abgelaufen"
+    EXPIRED_DESC  = "**{name}** hat nicht reagiert. Einsatz zur?ck, Peinlichkeit bleibt."
 
     CHALLENGE_TITLE = "\U0001f3b2 50:50 Bet Challenge!"
     CHALLENGE_DESC  = (
-        "**{challenger}** challenges **{target}** "
-        "for **{bet:,}** {CURRENCY_EMOJI}!\n\n"
-        "{mention}, do you accept?"
+        "**{challenger}** fordert **{target}** "
+        "f?r **{bet:,}** {CURRENCY_EMOJI}!\n\n"
+        "{mention}, nimmst du an oder stirbt dein Mut heute auf Raten?"
     )
 
-    ACCEPT_LABEL  = "Accept"
-    DECLINE_LABEL = "Decline"
+    ACCEPT_LABEL  = "Annehmen"
+    DECLINE_LABEL = "Ablehnen"
 
-    DESCRIPTION = "50:50 bet against another player"
+    DESCRIPTION = "50:50-Wette gegen einen anderen Spieler"
 
 
 # ── Casino / Blackjack ────────────────────────────────────────────────────────
 
 class Blackjack:
-    NOT_YOUR_GAME = "This isn't your game!"
-    MIN_BET_MSG   = "Minimum bet is {MIN_BET} {CURRENCY_EMOJI}"
-    NOT_ENOUGH    = "You don't have enough {CURRENCY_NAME}!"
+    NOT_YOUR_GAME = "Das ist nicht dein Spiel!"
+    MIN_BET_MSG   = "Mindesteinsatz sind {MIN_BET} {CURRENCY_EMOJI}"
+    NOT_ENOUGH    = "Du hast nicht genug {CURRENCY_NAME}. Das Haus lacht bereits."
 
     TITLE         = "\U0001f0cf Blackjack \u2014 Bet: {bet:,} {CURRENCY_EMOJI}"
-    YOUR_HAND     = "Your Hand"
+    YOUR_HAND     = "Deine Hand"
     DEALER        = "Dealer"
-    RESULT        = "Result"
+    RESULT        = "Ergebnis"
 
     WIN_RESULT     = "\U0001f389 **You win!** +{winnings:,} {CURRENCY_EMOJI}"
     PUSH_RESULT    = "\U0001f91d **Push!** Bet returned."
@@ -145,10 +145,10 @@ class Blackjack:
     TIMEOUT_RESULT = "\u23f0 **Timed out!** Bet returned."
     BLACKJACK_RESULT = "\U0001f3b0 **BLACKJACK!** +{winnings:,} {CURRENCY_EMOJI}"
 
-    HIT_LABEL   = "Hit"
-    STAND_LABEL = "Stand"
+    HIT_LABEL   = "Karte"
+    STAND_LABEL = "Stehen"
 
-    DESCRIPTION = "Play Blackjack"
+    DESCRIPTION = "Spiel Blackjack gegen einen Dealer ohne Gewissen"
 
 
 # ── Casino / Case ─────────────────────────────────────────────────────────────
@@ -159,7 +159,7 @@ class Case:
         "blue":       "Nicht schlecht!",
         "purple":     "Nices Drop! 🔥",
         "pink":       "COVERT DROP! 🔥🔥",
-        "gold":       "★ RARE SPECIAL — JACKPOT! 🌟",
+        "gold":       "★ GOLD!!! — JACKPOT! 🌟",
     }
 
     PREV_SOLD_PREFIX = "💰 **{prev_name}** für **{price:,}** {CURRENCY_EMOJI} verkauft.\n\n"
@@ -318,7 +318,7 @@ class Casino:
             "ov_name": "🎰 Lottery  •  `f.lottery <bet>`",
             "ov_value": "Scratch-off ticket — match 3 symbols for 10×\nMatch 2 for 3×",
             "detail_title": "🎰 Lottery Scratch-Off",
-            "detail_desc": "Buy a scratch-off ticket and reveal 3 symbols. Match them to win.",
+            "detail_desc": "Kauf ein Rubbellos, deck 3 Symbole auf und hoff, dass die Statistik kurz schl?ft.",
             "detail_fields": [
                 ("Usage", "`f.lottery <bet>`", True),
                 ("3 Matches", "10× bet", True),
@@ -370,9 +370,9 @@ class Casino:
 # ── Casino / Crash ────────────────────────────────────────────────────────────
 
 class Crash:
-    NOT_YOUR_GAME   = "This isn't your game!"
-    MIN_BET_MSG     = "Minimum bet is {MIN_BET} {CURRENCY_EMOJI}"
-    NOT_ENOUGH      = "You don't have enough {CURRENCY_NAME}!"
+    NOT_YOUR_GAME   = "Das ist nicht dein Spiel!"
+    MIN_BET_MSG     = "Mindesteinsatz sind {MIN_BET} {CURRENCY_EMOJI}"
+    NOT_ENOUGH      = "Du hast nicht genug {CURRENCY_NAME}."
 
     PENDING_TITLE   = "📈 Crash"
     PENDING_DESC    = (
@@ -436,43 +436,43 @@ class Crime:
 # ── Casino / Daily ────────────────────────────────────────────────────────────
 
 class Daily:
-    ALREADY_CLAIMED_TITLE = "{CURRENCY_EMOJI} Daily Already Claimed"
-    ALREADY_CLAIMED_DESC  = "Come back in **{h}h {m}m {s}s** (resets at midnight CET)."
-    REWARD_TITLE          = "{CURRENCY_EMOJI} Daily Reward Claimed!"
-    REWARD_DESC           = "+**{amount:,}** {CURRENCY_NAME}\nNew balance: **{new_bal:,}** {CURRENCY_EMOJI}"
-    REWARD_FOOTER         = "Resets at midnight CET."
+    ALREADY_CLAIMED_TITLE = "{CURRENCY_EMOJI} Daily schon abgegriffen"
+    ALREADY_CLAIMED_DESC  = "Komm in **{h}h {m}m {s}s** wieder. Der Staat zahlt nur einmal pro Tag."
+    REWARD_TITLE          = "{CURRENCY_EMOJI} Daily kassiert!"
+    REWARD_DESC           = "+**{amount:,}** {CURRENCY_NAME}\nNeuer Kontostand: **{new_bal:,}** {CURRENCY_EMOJI}"
+    REWARD_FOOTER         = "Reset um Mitternacht CET."
 
-    DESCRIPTION = "Claim your daily 30 000 Maka Flaschen"
+    DESCRIPTION = "Hol dir deine t?glichen 30.000 Maka-Flaschen Staatsw?rme"
 
 
 # ── Casino / Double ───────────────────────────────────────────────────────────
 
 class Double:
-    NOT_YOUR_GAME  = "This isn't your game!"
-    NOT_ENOUGH     = "Not enough {CURRENCY_NAME} to play again!"
-    MIN_BET_MSG    = "Minimum bet is {MIN_BET} {CURRENCY_EMOJI}"
-    BROKE_MSG      = "You don't have enough {CURRENCY_NAME}!"
+    NOT_YOUR_GAME  = "Das ist nicht dein Spiel!"
+    NOT_ENOUGH     = "Nicht genug {CURRENCY_NAME} f?r die n?chste dumme Idee."
+    MIN_BET_MSG    = "Mindesteinsatz sind {MIN_BET} {CURRENCY_EMOJI}"
+    BROKE_MSG      = "Du hast nicht genug {CURRENCY_NAME}. Selbst dein R?ckfall ist unterfinanziert."
 
     TITLE          = "\U0001f4b0 Double or Nothing"
     WIN_DESC       = "**\U0001f389 DOUBLE!** You won **{winnings:,}** {CURRENCY_EMOJI}!"
     LOSE_DESC      = "**\U0001f480 NOTHING!** You lost **{bet:,}** {CURRENCY_EMOJI}."
-    FOOTER         = "Bet: {bet:,}"
+    FOOTER         = "Einsatz: {bet:,}"
 
-    PLAY_AGAIN_LABEL = "Play Again"
-    QUIT_LABEL       = "Quit"
+    PLAY_AGAIN_LABEL = "Nochmal"
+    QUIT_LABEL       = "Raus"
 
-    DESCRIPTION = "Double or nothing"
+    DESCRIPTION = "Doppelt oder nichts"
 
 
 # ── Casino / Earn ─────────────────────────────────────────────────────────────
 
 class Earn:
     BEG_RESPONSES = [
-        "A kind stranger took pity on you.",
-        "Someone threw coins out of a car window.",
-        "You found a crumpled bill on the ground.",
-        "A tourist thought you were a street performer.",
-        "An old lady gave you her grocery change.",
+        "Ein Fremder hatte kurz Mitleid, dann wieder Selbsthass.",
+        "Jemand warf Kleingeld aus dem Auto. Vermutlich f?r Ruhe, nicht aus Liebe.",
+        "Du hast einen zerknitterten Schein vom Boden gerettet. Er hatte es auch nicht leicht.",
+        "Ein Tourist hielt dich f?r Stra?enkunst. Technisch gesehen war's Mitleid mit Kulturbonus.",
+        "Eine Oma gab dir ihr Wechselgeld und direkt noch stilles Urteil dazu.",
     ]
 
     JOBS = [
@@ -552,14 +552,14 @@ class Earn:
     FIELD_VALUE_TEMPLATE = "💰 **{gain}** {CURRENCY_EMOJI}\n{risk_line}\n{status_line}"
     FOOTER               = "Higher risk = higher reward. Steal requires f.steal @user."
 
-    NOT_YOUR_MENU  = "This isn't your earn menu!"
+    NOT_YOUR_MENU  = "Das ist nicht dein Geld-Men?. Parasit?res Mitschauen reicht nicht."
     STILL_COOLDOWN = "Still on cooldown — ready <t:{ready_at}:R>."
 
     BEG_TITLE    = "🙏 Begging Complete"
     BEG_DESC     = "{response}\n+**{earned:,}** {CURRENCY_EMOJI}"
-    FISH_TITLE   = "{emoji} Caught Something!"
-    FISH_DESC    = "You reeled in **{name}** and sold it for **{earned:,}** {CURRENCY_EMOJI}."
-    WORK_TITLE   = "{emoji} Work Complete"
+    FISH_TITLE   = "{emoji} Fang gemacht!"
+    FISH_DESC    = "Du hast **{name}** rausgezogen und f?r **{earned:,}** {CURRENCY_EMOJI} verscherbelt."
+    WORK_TITLE   = "{emoji} Schicht beendet"
     WORK_DESC    = "You {desc} and earned **{earned:,}** {CURRENCY_EMOJI}."
     CRIME_SUCCESS_TITLE = "🦹 Crime Pays"
     CRIME_SUCCESS_DESC  = "You {crime} and got away with **{earned:,}** {CURRENCY_EMOJI}."
@@ -569,7 +569,7 @@ class Earn:
     SCAM_SUCCESS_DESC   = "You {scam}.\n+**{earned:,}** {CURRENCY_EMOJI}"
     SCAM_FAIL_TITLE     = "🚔 Scam Backfired"
     SCAM_FAIL_DESC      = "You {scam}.\n-**{lost:,}** {CURRENCY_EMOJI}"
-    DAILY_TITLE         = "{CURRENCY_EMOJI} Daily Reward Claimed!"
+    DAILY_TITLE         = "{CURRENCY_EMOJI} Daily kassiert!"
     DAILY_DESC          = "+**{amount:,}** {CURRENCY_NAME}"
     FINANZ_TITLE        = "💶 Finanzspritze erhalten!"
     FINANZ_DESC         = "{line}\n+**{amount:,}** {CURRENCY_EMOJI}"
@@ -618,11 +618,11 @@ class Fish:
     ]
 
     COOLDOWN    = "🎣 The fish need time to come back. Try again in **{time_str}**."
-    TITLE       = "{emoji} Caught Something!"
-    DESCRIPTION = "You reeled in **{name}** and sold it for **{earned:,}** {CURRENCY_EMOJI}."
+    TITLE       = "{emoji} Fang gemacht!"
+    DESCRIPTION = "Du hast **{name}** rausgezogen und f?r **{earned:,}** {CURRENCY_EMOJI} verscherbelt."
     FOOTER      = "Balance: {new_bal:,} {CURRENCY_EMOJI} • Cooldown: 10min"
 
-    COMMAND_DESCRIPTION = "Go fishing for some income"
+    COMMAND_DESCRIPTION = "Geh angeln und monetarisiere Wasserbewohner"
 
 
 # ── Casino / Inventory ────────────────────────────────────────────────────────
@@ -648,43 +648,43 @@ class Inventory:
 # ── Casino / Leaderboard ──────────────────────────────────────────────────────
 
 class Leaderboard:
-    TITLE         = "{CURRENCY_EMOJI} {CURRENCY_NAME} Leaderboard"
-    EMPTY         = "No players yet."
-    FOOTER        = "Sorted by total wealth (balance + inventory)"
-    REFRESH_LABEL = "Refresh"
+    TITLE         = "{CURRENCY_EMOJI} {CURRENCY_NAME}-Bestenliste"
+    EMPTY         = "Noch keine Spieler. Reichtum braucht offenbar l?nger als gedacht."
+    FOOTER        = "Sortiert nach Gesamtverm?gen (Kontostand + Inventar)"
+    REFRESH_LABEL = "Aktualisieren"
 
-    DESCRIPTION = "Top balances"
+    DESCRIPTION = "Die reichsten Gestalten auf dem Server"
 
 
 # ── Casino / Lottery ──────────────────────────────────────────────────────────
 
 class Lottery:
-    NOT_YOUR_GAME = "This isn't your game!"
-    NOT_ENOUGH    = "Not enough {CURRENCY_NAME} for another ticket!"
-    MIN_BET_MSG   = "Minimum bet is {MIN_BET} {CURRENCY_EMOJI}"
-    BROKE_MSG     = "You don't have enough {CURRENCY_NAME}!"
+    NOT_YOUR_GAME = "Das ist nicht dein Spiel!"
+    NOT_ENOUGH    = "Nicht genug {CURRENCY_NAME} f?r noch ein Los. Die Sucht muss warten."
+    MIN_BET_MSG   = "Mindesteinsatz sind {MIN_BET} {CURRENCY_EMOJI}"
+    BROKE_MSG     = "Du hast nicht genug {CURRENCY_NAME}. Selbst Illusionen kosten."
 
-    TITLE         = "\U0001f3b0 Lottery Scratch-Off"
-    YOUR_TICKET   = "Your Ticket"
-    RESULT        = "Result"
+    TITLE         = "\U0001f3b0 Rubbellos"
+    YOUR_TICKET   = "Dein Los"
+    RESULT        = "Ergebnis"
     JACKPOT       = "\U0001f389 **JACKPOT!** All three match!"
     TWO_MATCH     = "\U0001f31f **Two match!** Nice pull."
     NO_MATCH      = "\U0001f480 **No match.** Better luck next time."
     WIN_SUFFIX    = "\n+**{winnings:,}** {CURRENCY_EMOJI}"
     FOOTER        = "Bet: {bet:,} | 3 match = 10x \u2022 2 match = 3x"
 
-    ANOTHER_TICKET_LABEL = "Another Ticket"
-    QUIT_LABEL           = "Quit"
+    ANOTHER_TICKET_LABEL = "Noch ein Los"
+    QUIT_LABEL           = "Raus"
 
-    DESCRIPTION = "Scratch-off lottery ticket"
+    DESCRIPTION = "Rubbellos mit kalkulierter Entt?uschung"
 
 
 # ── Casino / Mines ────────────────────────────────────────────────────────────
 
 class Mines:
-    NOT_YOUR_GAME  = "This isn't your game!"
-    MIN_BET_MSG    = "Minimum bet is {MIN_BET} {CURRENCY_EMOJI}"
-    NOT_ENOUGH     = "You don't have enough {CURRENCY_NAME}!"
+    NOT_YOUR_GAME  = "Das ist nicht dein Spiel!"
+    MIN_BET_MSG    = "Mindesteinsatz sind {MIN_BET} {CURRENCY_EMOJI}"
+    NOT_ENOUGH     = "Du hast nicht genug {CURRENCY_NAME}."
 
     BOOM_TITLE         = "💣 Mines — 💥 BOOM!"
     BOOM_DESC_HIT      = (
@@ -723,7 +723,7 @@ class Mines:
 class Pay:
     CANT_PAY_SELF   = "You can't pay yourself."
     INVALID_AMOUNT  = "Amount must be a positive number."
-    NOT_ENOUGH      = "You don't have enough {CURRENCY_NAME}!"
+    NOT_ENOUGH      = "Du hast nicht genug {CURRENCY_NAME}."
 
     TITLE       = "{CURRENCY_EMOJI} Payment Sent"
     DESCRIPTION = (
@@ -739,14 +739,14 @@ class Pay:
 # ── Casino / Poker ────────────────────────────────────────────────────────────
 
 class Poker:
-    NOT_YOUR_GAME     = "This isn't your game!"
-    MIN_BET_MSG       = "Minimum bet is {MIN_BET} {CURRENCY_EMOJI}"
-    NOT_ENOUGH        = "You don't have enough {CURRENCY_NAME}!"
+    NOT_YOUR_GAME     = "Das ist nicht dein Spiel!"
+    MIN_BET_MSG       = "Mindesteinsatz sind {MIN_BET} {CURRENCY_EMOJI}"
+    NOT_ENOUGH        = "Du hast nicht genug {CURRENCY_NAME}."
 
     TITLE             = "\U0001f3b0 Video Poker \u2014 Bet: {bet:,} {CURRENCY_EMOJI}"
-    YOUR_HAND         = "Your Hand"
+    YOUR_HAND         = "Deine Hand"
     FINAL_HAND        = "Final Hand (replaced {discarded} card{s})"
-    RESULT            = "Result"
+    RESULT            = "Ergebnis"
     HOW_TO_PLAY_NAME  = "How to Play"
     HOW_TO_PLAY_VALUE = (
         "Select cards to **discard** from the dropdown, then press **Draw**.\n"
@@ -788,9 +788,9 @@ class Reset:
 # ── Casino / Roulette ─────────────────────────────────────────────────────────
 
 class Roulette:
-    NOT_YOUR_GAME  = "This isn't your game!"
-    MIN_BET_MSG    = "Minimum bet is {MIN_BET} {CURRENCY_EMOJI}"
-    NOT_ENOUGH     = "You don't have enough {CURRENCY_NAME}!"
+    NOT_YOUR_GAME  = "Das ist nicht dein Spiel!"
+    MIN_BET_MSG    = "Mindesteinsatz sind {MIN_BET} {CURRENCY_EMOJI}"
+    NOT_ENOUGH     = "Du hast nicht genug {CURRENCY_NAME}."
     INVALID_CHOICE = "Bet on `red`, `black`, `green`, or a number `0-36`."
     USAGE          = (
         "Usage: `f.roulette <bet> <red|black|green|0-36>`\n"
@@ -801,7 +801,7 @@ class Roulette:
     TITLE         = "\U0001f3b0 Roulette"
     LANDS_ON      = "The wheel lands on\u2026"
     YOUR_BET      = "Your Bet"
-    RESULT        = "Result"
+    RESULT        = "Ergebnis"
     WIN_DESC      = "\U0001f389 **You win {winnings:,}** {CURRENCY_EMOJI}!"
     LOSE_DESC     = "\U0001f480 **You lose {bet:,}** {CURRENCY_EMOJI}."
 
@@ -1059,7 +1059,7 @@ class Work:
     ]
 
     COOLDOWN    = "😴 You're still tired. Back to work in **{m}m {s}s**."
-    TITLE       = "{emoji} Work Complete"
+    TITLE       = "{emoji} Schicht beendet"
     DESCRIPTION = "You {desc} and earned **{earned:,}** {CURRENCY_EMOJI}."
     FOOTER      = "Balance: {new_bal:,} {CURRENCY_EMOJI} • Cooldown: 10min"
 
@@ -1073,7 +1073,7 @@ class Help:
     PAGE_FOOTER     = "Page {page}/{total}"
     CAT_CONT_SUFFIX = " (cont.)"
 
-    DESCRIPTION = "Show all available commands"
+    DESCRIPTION = "Zeig alle verf?gbaren Befehle"
 
 
 # ── Games / Map ───────────────────────────────────────────────────────────────
@@ -1146,7 +1146,7 @@ class FaceitMatch:
     OUR_TEAM_LABEL    = "🟢 Your Team"
     OPPONENTS_LABEL   = "🔴 Opponents"
 
-    DESCRIPTION = "Show live match details"
+    DESCRIPTION = "Zeig Details zu einem Live-Match"
 
 
 # ── Faceit / User ─────────────────────────────────────────────────────────────
@@ -1180,32 +1180,32 @@ class FaceitUser:
 # ── Media / Play ──────────────────────────────────────────────────────────────
 
 class Play:
-    NO_VOICE_CHANNEL = "You need to be in a voice channel to use this."
-    NO_ATTACHMENT    = "Please attach an audio file to play."
-    DESCRIPTION      = "Play attached audio file"
+    NO_VOICE_CHANNEL = "Du musst in einem Voice-Channel sein, sonst rede ich nur mit der Leere."
+    NO_ATTACHMENT    = "H?ng eine Audiodatei an, sonst soll ich hier Luft auflegen."
+    DESCRIPTION      = "Spiel eine angeh?ngte Audiodatei ab"
 
 
 # ── Media / Stop ──────────────────────────────────────────────────────────────
 
 class Stop:
     STOPPED         = "⏹️ Audio stopped and disconnected."
-    NOT_IN_CHANNEL  = "I'm not in a voice channel."
-    DESCRIPTION     = "Stop audio and disconnect"
+    NOT_IN_CHANNEL  = "Ich bin in keinem Voice-Channel."
+    DESCRIPTION     = "Stoppe Audio und trenn die Verbindung"
 
 
 # ── Media / TTS ───────────────────────────────────────────────────────────────
 
 class TTS:
-    NO_VOICE_CHANNEL = "You need to be in a voice channel to use this."
-    DESCRIPTION      = "Text to speech in voice channel"
+    NO_VOICE_CHANNEL = "Du musst in einem Voice-Channel sein, sonst rede ich nur mit der Leere."
+    DESCRIPTION      = "Text zu Sprache im Voice-Channel"
 
 
 # ── Media / YTPlay ────────────────────────────────────────────────────────────
 
 class YTPlay:
-    NO_VOICE_CHANNEL  = "You need to be in a voice channel to play music."
-    NO_QUERY          = "Please provide a search query or a YouTube link."
+    NO_VOICE_CHANNEL  = "Du musst in einem Voice-Channel sein, wenn wir gemeinsam Geh?rsch?den wollen."
+    NO_QUERY          = "Gib eine Suche oder einen YouTube-Link an."
     SEARCHING         = "🔍 Searching for `{query}`..."
     ERROR             = "❌ Could not find or play track: {error}"
     NOW_PLAYING       = "🎵 **Now Playing (70% Vol):** [{title}](<{url}>)"
-    DESCRIPTION       = "Play YouTube audio"
+    DESCRIPTION       = "Spiel YouTube-Audio ab"
