@@ -14,7 +14,7 @@ def _lb_embed(guild: discord.Guild, requester: discord.Member) -> discord.Embed:
     board = get_leaderboard(10)
     lines = []
     for i, (uid, bal) in enumerate(board):
-        member = guild.get_member(int(uid))
+        member = guild.fetch_member(int(uid))
         name   = member.display_name if member else f"User {uid}"
         lines.append(f"{MEDALS.get(i, f'`{i+1}.`')} **{name}** — {bal:,} {CURRENCY_EMOJI}")
     embed = discord.Embed(
