@@ -12,15 +12,10 @@ from gtts import gTTS
 from bot.commands.casino.wallet import (
     everyone_broke, reset_all_balances, CURRENCY_EMOJI,
 )
+from bot.strings import Reset as S
 
 _RESET_AMOUNT = 5_000
-_VOICELINE = (
-    "ACHTUNG! Trump hat alle US Staatsfonds in den Irankrieg investiert. "
-    "Jeder Gambler ist pleite. "
-    "Benjamin Netanyahu hat beschlossen, das Maka verbot aufzuheben und die 15.000 Maka Flaschen zurückzukaufen, um die Wirtschaft zu stabilisieren. "
-    "alle Mossad Agenten haben die Casinos infiltriert und die Konten der Spieler auf 15.000 Maka zurückgesetzt. "
-    "isreal gewinnt immer. "
-)
+_VOICELINE = S.VOICELINE
 _TTS_FILE = "reset_voiceline.mp3"
 
 
@@ -44,15 +39,11 @@ async def check_broke_reset(message: Message) -> None:
 
     # ── Announcement embed ────────────────────────────────────────
     embed = discord.Embed(
-        title="💀 EVERYONE IS BROKE",
-        description=(
-            f"Every single gambler has hit zero.\n\n"
-            f"The house shows mercy.\n"
-            f"**All balances reset to {_RESET_AMOUNT:,} {CURRENCY_EMOJI}**"
-        ),
+        title=S.BROKE_TITLE,
+        description=S.BROKE_DESC.format(amount=_RESET_AMOUNT, CURRENCY_EMOJI=CURRENCY_EMOJI),
         color=0xFF0000,
     )
-    embed.set_footer(text="The casino always wins.")
+    embed.set_footer(text=S.BROKE_FOOTER)
     await message.channel.send(embed=embed)
 
     reset_all_balances(_RESET_AMOUNT)

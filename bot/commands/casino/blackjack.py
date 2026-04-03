@@ -7,6 +7,7 @@ from bot.commands.casino.wallet import (
     resolve_bet,
 )
 from bot.commands.casino.cards import Deck, bj_total, hand_str
+from bot.strings import Blackjack as S
 
 
 class BlackjackView(discord.ui.View):
@@ -23,7 +24,7 @@ class BlackjackView(discord.ui.View):
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.player_id:
-            await interaction.response.send_message("This isn't your game!", ephemeral=True)
+            await interaction.response.send_message(S.NOT_YOUR_GAME, ephemeral=True)
             return False
         return True
 
@@ -36,17 +37,17 @@ class BlackjackView(discord.ui.View):
             d_line = f"`{self.dealer_hand[0]}` `??`"
 
         embed = tag_embed(discord.Embed(
-            title=f"\U0001f0cf Blackjack \u2014 Bet: {self.bet:,} {CURRENCY_EMOJI}",
+            title=S.TITLE.format(bet=self.bet, CURRENCY_EMOJI=CURRENCY_EMOJI),
             color=color,
         ), self.member)
         embed.add_field(
-            name="Your Hand",
+            name=S.YOUR_HAND,
             value=f"{hand_str(self.player_hand)} (Value: **{p_val}**)",
             inline=False,
         )
-        embed.add_field(name="Dealer", value=d_line, inline=False)
+        embed.add_field(name=S.DEALER, value=d_line, inline=False)
         if result_text:
-            embed.add_field(name="Result", value=result_text, inline=False)
+            embed.add_field(name=S.RESULT, value=result_text, inline=False)
         return embed
 
     async def _finish(self, interaction: discord.Interaction,
@@ -68,26 +69,26 @@ class BlackjackView(discord.ui.View):
             winnings = int(self.bet * 2.1)  # 2.1x → ~106% RTP on regular wins
             add_balance(self.player_id, winnings)
             await self._finish(interaction,
-                               f"\U0001f389 **You win!** +{winnings:,} {CURRENCY_EMOJI}",
+                               S.WIN_RESULT.format(winnings=winnings, CURRENCY_EMOJI=CURRENCY_EMOJI),
                                0x2ECC71)
         elif p_val == d_val:
             add_balance(self.player_id, self.bet)
             await self._finish(interaction,
-                               f"\U0001f91d **Push!** Bet returned.",
+                               S.PUSH_RESULT,
                                0xF39C12)
         else:
             await self._finish(interaction,
-                               f"\U0001f480 **Dealer wins!** -{self.bet:,} {CURRENCY_EMOJI}",
+                               S.DEALER_WIN.format(bet=self.bet, CURRENCY_EMOJI=CURRENCY_EMOJI),
                                0xE74C3C)
 
-    @discord.ui.button(label="Hit", style=discord.ButtonStyle.primary, emoji="\U0001f0cf")
+    @discord.ui.button(label=S.HIT_LABEL, style=discord.ButtonStyle.primary, emoji="\U0001f0cf")
     async def hit_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.player_hand.extend(self.deck.deal(1))
         p_val = bj_total(self.player_hand)
 
         if p_val > 21:
             await self._finish(interaction,
-                               f"\U0001f4a5 **Bust!** -{self.bet:,} {CURRENCY_EMOJI}",
+                               S.BUST_RESULT.format(bet=self.bet, CURRENCY_EMOJI=CURRENCY_EMOJI),
                                0xE74C3C)
         elif p_val == 21:
             await self._dealer_play(interaction)
@@ -95,7 +96,7 @@ class BlackjackView(discord.ui.View):
             embed = self.build_embed()
             await interaction.response.edit_message(embed=embed, view=self)
 
-    @discord.ui.button(label="Stand", style=discord.ButtonStyle.secondary, emoji="\u270b")
+    @discord.ui.button(label=S.STAND_LABEL, style=discord.ButtonStyle.secondary, emoji="\u270b")
     async def stand_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._dealer_play(interaction)
 
@@ -105,7 +106,7 @@ class BlackjackView(discord.ui.View):
             item.disabled = True
         embed = self.build_embed(
             reveal_dealer=True,
-            result_text="\u23f0 **Timed out!** Bet returned.",
+            result_text=S.TIMEOUT_RESULT,
             color=0x95A5A6,
         )
         if self.message:
@@ -115,8 +116,8 @@ class BlackjackView(discord.ui.View):
                 pass
 
 
-@command("blackjack", description="Play Blackjack", usage="f.blackjack <bet>", category="Casino")
-@command("bj", description="Play Blackjack", usage="f.bj <bet>", category="Casino")
+@command("blackjack", description=S.DESCRIPTION, usage="f.blackjack <bet>", category="Casino")
+@command("bj", description=S.DESCRIPTION, usage="f.bj <bet>", category="Casino")
 async def blackjack_command(message: Message, args: list[str]):
     if not args:
         await message.reply("Usage: `f.bj <bet>`  (e.g. `f.bj 500`, `f.bj all`, `f.bj 50%`)")
@@ -127,13 +128,13 @@ async def blackjack_command(message: Message, args: list[str]):
         await message.reply("Usage: `f.bj <bet>`  (e.g. `f.bj 500`, `f.bj all`, `f.bj 50%`)")
         return
     if bet < MIN_BET:
-        await message.reply(f"Minimum bet is {MIN_BET} {CURRENCY_EMOJI}")
+        await message.reply(S.MIN_BET_MSG.format(MIN_BET=MIN_BET, CURRENCY_EMOJI=CURRENCY_EMOJI))
         return
 
     try:
         remove_balance(message.author.id, bet)
     except ValueError:
-        await message.reply(f"You don't have enough {CURRENCY_NAME}!")
+        await message.reply(S.NOT_ENOUGH.format(CURRENCY_NAME=CURRENCY_NAME))
         return
 
     deck = Deck()
@@ -145,12 +146,12 @@ async def blackjack_command(message: Message, args: list[str]):
         winnings = int(bet * 3)  # 3x natural → extra reward for lucky deal
         add_balance(message.author.id, winnings)
         embed = tag_embed(discord.Embed(
-            title=f"\U0001f0cf Blackjack \u2014 Bet: {bet:,} {CURRENCY_EMOJI}",
+            title=S.TITLE.format(bet=bet, CURRENCY_EMOJI=CURRENCY_EMOJI),
             color=0xFFD700,
         ), message.author)
-        embed.add_field(name="Your Hand", value=f"{hand_str(player_hand)} (Value: **21**)", inline=False)
-        embed.add_field(name="Dealer", value=f"{hand_str(dealer_hand)} (Value: **{bj_total(dealer_hand)}**)", inline=False)
-        embed.add_field(name="Result", value=f"\U0001f3b0 **BLACKJACK!** +{winnings:,} {CURRENCY_EMOJI}", inline=False)
+        embed.add_field(name=S.YOUR_HAND, value=f"{hand_str(player_hand)} (Value: **21**)", inline=False)
+        embed.add_field(name=S.DEALER, value=f"{hand_str(dealer_hand)} (Value: **{bj_total(dealer_hand)}**)", inline=False)
+        embed.add_field(name=S.RESULT, value=S.BLACKJACK_RESULT.format(winnings=winnings, CURRENCY_EMOJI=CURRENCY_EMOJI), inline=False)
         await message.channel.send(embed=embed)
         return
 

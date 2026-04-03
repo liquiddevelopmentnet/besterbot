@@ -7,6 +7,7 @@ from discord import Message
 from bot.commands import command
 from bot.commands.casino.wallet import get_inventory, tag_embed, CURRENCY_EMOJI
 from bot.commands.casino.items import item_full_name, RARITIES, RARITY_ORDER
+from bot.strings import Inventory as S
 
 ITEMS_PER_PAGE = 5
 
@@ -32,17 +33,14 @@ def _inv_embed(
     *,
     own: bool = True,
 ) -> discord.Embed:
-    title = "🎒 Dein Inventar" if own else f"🎒 {target.display_name}'s Inventar"
+    title = S.TITLE_OWN if own else S.TITLE_OTHER.format(name=target.display_name)
     embed = discord.Embed(title=title, color=0x2C2F33)
 
     if not items:
         if own:
-            embed.description = (
-                "Dein Inventar ist leer!\n"
-                "Öffne eine Case mit `f.case` für **800** Maka."
-            )
+            embed.description = S.EMPTY_OWN
         else:
-            embed.description = f"**{target.display_name}** hat noch keine Items."
+            embed.description = S.EMPTY_OTHER.format(name=target.display_name)
         return tag_embed(embed, target)
 
     start      = page * ITEMS_PER_PAGE
@@ -70,15 +68,12 @@ def _inv_embed(
     sort_label = SORT_MODES.get(sort_mode, SORT_MODES["default"])[0]
 
     embed.description = "\n\n".join(lines)
-    embed.add_field(name="Inventarwert", value=f"**{total_value:,}** {CURRENCY_EMOJI}", inline=True)
-    embed.add_field(name="Items",        value=rarity_str or "—",                       inline=True)
+    embed.add_field(name=S.FIELD_WORTH, value=f"**{total_value:,}** {CURRENCY_EMOJI}", inline=True)
+    embed.add_field(name=S.FIELD_ITEMS, value=rarity_str or "—",                       inline=True)
 
-    footer_suffix = "  ·  f.sell <#> zum Verkaufen" if own else ""
+    sell_hint = S.SELL_HINT if own else ""
     embed.set_footer(
-        text=(
-            f"Seite {page + 1}/{total_pages}  ·  {len(items)} Items"
-            f"  ·  Sortierung: {sort_label}{footer_suffix}"
-        )
+        text=S.FOOTER.format(page=page + 1, total=total_pages, count=len(items), sort=sort_label, sell_hint=sell_hint)
     )
 
     thumb_item = max(page_items, key=lambda it: RARITY_ORDER.index(it["rarity"]))
@@ -132,13 +127,13 @@ class InventoryView(discord.ui.View):
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.viewer_id:
             await interaction.response.send_message(
-                "Nur der Aufrufer kann blättern!", ephemeral=True
+                S.NOT_YOURS, ephemeral=True
             )
             return False
         return True
 
     # ── pagination ────────────────────────────────────────────────────────────
-    @discord.ui.button(label="◀", style=discord.ButtonStyle.secondary, row=0)
+    @discord.ui.button(label="◀", style=discord.ButtonStyle.secondary, row=0)  # navigation arrow — not extracted
     async def prev_btn(self, interaction: discord.Interaction, _: discord.ui.Button):
         self.page -= 1
         self._sync()
@@ -151,7 +146,7 @@ class InventoryView(discord.ui.View):
         await interaction.response.edit_message(embed=self._current_embed(), view=self)
 
     # ── sort buttons ──────────────────────────────────────────────────────────
-    @discord.ui.button(label="💰 Wert", style=discord.ButtonStyle.secondary, row=1)
+    @discord.ui.button(label=S.SORT_VALUE_LABEL, style=discord.ButtonStyle.secondary, row=1)
     async def sort_value_btn(self, interaction: discord.Interaction, _: discord.ui.Button):
         self.sort_mode  = "default" if self.sort_mode == "value" else "value"
         self.items      = _sort_items(self.raw_items, self.sort_mode)
@@ -160,7 +155,7 @@ class InventoryView(discord.ui.View):
         self._sync()
         await interaction.response.edit_message(embed=self._current_embed(), view=self)
 
-    @discord.ui.button(label="⭐ Seltenheit", style=discord.ButtonStyle.secondary, row=1)
+    @discord.ui.button(label=S.SORT_RARITY_LABEL, style=discord.ButtonStyle.secondary, row=1)
     async def sort_rarity_btn(self, interaction: discord.Interaction, _: discord.ui.Button):
         self.sort_mode  = "default" if self.sort_mode == "rarity" else "rarity"
         self.items      = _sort_items(self.raw_items, self.sort_mode)
@@ -169,7 +164,7 @@ class InventoryView(discord.ui.View):
         self._sync()
         await interaction.response.edit_message(embed=self._current_embed(), view=self)
 
-    @discord.ui.button(label="🔢 Float", style=discord.ButtonStyle.secondary, row=1)
+    @discord.ui.button(label=S.SORT_FLOAT_LABEL, style=discord.ButtonStyle.secondary, row=1)
     async def sort_float_btn(self, interaction: discord.Interaction, _: discord.ui.Button):
         self.sort_mode  = "default" if self.sort_mode == "float" else "float"
         self.items      = _sort_items(self.raw_items, self.sort_mode)
@@ -183,9 +178,9 @@ class InventoryView(discord.ui.View):
             child.disabled = True
 
 
-@command("inventory", description="Zeige Inventar (eigenes oder von @user)",
+@command("inventory", description=S.DESCRIPTION,
          usage="f.inventory [@user]", category="Casino")
-@command("inv",       description="Zeige Inventar (eigenes oder von @user)",
+@command("inv",       description=S.DESCRIPTION,
          usage="f.inv [@user]",       category="Casino")
 async def inventory_command(message: Message, args: list[str]):
     if message.mentions:

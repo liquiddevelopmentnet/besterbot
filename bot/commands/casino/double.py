@@ -8,6 +8,7 @@ from bot.commands.casino.wallet import (
     remove_balance, add_balance, tag_embed, CURRENCY_NAME, CURRENCY_EMOJI, MIN_BET,
     resolve_bet,
 )
+from bot.strings import Double as S
 
 
 def _play(bet: int, user_id: int, member: discord.Member) -> discord.Embed:
@@ -16,17 +17,17 @@ def _play(bet: int, user_id: int, member: discord.Member) -> discord.Embed:
         winnings = bet * 2
         add_balance(user_id, winnings)
         embed = discord.Embed(
-            title="\U0001f4b0 Double or Nothing",
-            description=f"**\U0001f389 DOUBLE!** You won **{winnings:,}** {CURRENCY_EMOJI}!",
+            title=S.TITLE,
+            description=S.WIN_DESC.format(winnings=winnings, CURRENCY_EMOJI=CURRENCY_EMOJI),
             color=0x2ECC71,
         )
     else:
         embed = discord.Embed(
-            title="\U0001f4b0 Double or Nothing",
-            description=f"**\U0001f480 NOTHING!** You lost **{bet:,}** {CURRENCY_EMOJI}.",
+            title=S.TITLE,
+            description=S.LOSE_DESC.format(bet=bet, CURRENCY_EMOJI=CURRENCY_EMOJI),
             color=0xE74C3C,
         )
-    embed.set_footer(text=f"Bet: {bet:,}")
+    embed.set_footer(text=S.FOOTER.format(bet=bet))
     return tag_embed(embed, member)
 
 
@@ -39,11 +40,11 @@ class DoubleView(discord.ui.View):
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.user_id:
-            await interaction.response.send_message("This isn't your game!", ephemeral=True)
+            await interaction.response.send_message(S.NOT_YOUR_GAME, ephemeral=True)
             return False
         return True
 
-    @discord.ui.button(label="Play Again", style=discord.ButtonStyle.primary, emoji="\U0001f501")
+    @discord.ui.button(label=S.PLAY_AGAIN_LABEL, style=discord.ButtonStyle.primary, emoji="\U0001f501")
     async def play_again(self, interaction: discord.Interaction, button: discord.ui.Button):
         # Deduct bet first — if insufficient, just disable and bail
         try:
@@ -52,7 +53,7 @@ class DoubleView(discord.ui.View):
             button.disabled = True
             await interaction.response.edit_message(view=self)
             await interaction.followup.send(
-                f"Not enough {CURRENCY_NAME} to play again!", ephemeral=True
+                S.NOT_ENOUGH.format(CURRENCY_NAME=CURRENCY_NAME), ephemeral=True
             )
             return
 
@@ -66,7 +67,7 @@ class DoubleView(discord.ui.View):
         new_view = DoubleView(self.user_id, self.member, self.bet)
         await interaction.followup.send(embed=embed, view=new_view)
 
-    @discord.ui.button(label="Quit", style=discord.ButtonStyle.secondary, emoji="\u2716\ufe0f")
+    @discord.ui.button(label=S.QUIT_LABEL, style=discord.ButtonStyle.secondary, emoji="\u2716\ufe0f")
     async def quit(self, interaction: discord.Interaction, button: discord.ui.Button):
         for item in self.children:
             item.disabled = True
@@ -77,7 +78,7 @@ class DoubleView(discord.ui.View):
             item.disabled = True
 
 
-@command("double", description="Double or nothing", usage="f.double <bet>", category="Casino")
+@command("double", description=S.DESCRIPTION, usage="f.double <bet>", category="Casino")
 async def double_command(message: Message, args: list[str]):
     if not args:
         await message.reply("Usage: `f.double <bet>`  (e.g. `f.double 500`, `f.double all`, `f.double 50%`)")
@@ -88,13 +89,13 @@ async def double_command(message: Message, args: list[str]):
         await message.reply("Usage: `f.double <bet>`  (e.g. `f.double 500`, `f.double all`, `f.double 50%`)")
         return
     if bet < MIN_BET:
-        await message.reply(f"Minimum bet is {MIN_BET} {CURRENCY_EMOJI}")
+        await message.reply(S.MIN_BET_MSG.format(MIN_BET=MIN_BET, CURRENCY_EMOJI=CURRENCY_EMOJI))
         return
 
     try:
         remove_balance(message.author.id, bet)
     except ValueError:
-        await message.reply(f"You don't have enough {CURRENCY_NAME}!")
+        await message.reply(S.BROKE_MSG.format(CURRENCY_NAME=CURRENCY_NAME))
         return
 
     embed = _play(bet, message.author.id, message.author)

@@ -2,17 +2,18 @@ from discord import Message
 
 from bot.commands import command
 from bot.commands.media import voice
+from bot.strings import Stop as S
 
 
 @command(
     "stop",
-    description="Stop audio and disconnect",
+    description=S.DESCRIPTION,
     usage="f.stop",
     category="Media",
 )
 async def stop_command(message: Message, args: list[str]):
     if voice.vc and voice.vc.is_connected():
         await voice.vc.disconnect()
-        await message.reply("⏹️ Audio stopped and disconnected.")
+        await message.reply(S.STOPPED)
     else:
-        await message.reply("I'm not in a voice channel.")
+        await message.reply(S.NOT_IN_CHANNEL)

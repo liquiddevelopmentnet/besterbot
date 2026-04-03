@@ -8,6 +8,7 @@ from bot.commands.casino.wallet import (
     remove_balance, add_balance, tag_embed,
     CURRENCY_NAME, CURRENCY_EMOJI, MIN_BET, resolve_bet,
 )
+from bot.strings import Crash as S
 
 # Preset target multipliers offered as buttons
 _PRESETS = [1.5, 2.0, 3.0, 5.0, 10.0, 25.0]
@@ -29,16 +30,12 @@ def _pending_embed(member: discord.Member, bet: int) -> discord.Embed:
         chance = min(int(1.05 / p * 100), 99)
         lines.append(f"**{p}x** — {chance}% chance · pays **{int(bet * p):,}**")
     embed = discord.Embed(
-        title="📈 Crash",
-        description=(
-            "Pick your target multiplier below.\n"
-            "If the rocket crashes *before* your target — you lose.\n\n"
-            + "\n".join(lines)
-        ),
+        title=S.PENDING_TITLE,
+        description=S.PENDING_DESC.format(lines="\n".join(lines)),
         color=0xF39C12,
     )
-    embed.add_field(name="Bet", value=f"{bet:,} {CURRENCY_EMOJI}", inline=True)
-    embed.set_footer(text="Player edge ~5% — odds are in your favour")
+    embed.add_field(name=S.PENDING_BET, value=f"{bet:,} {CURRENCY_EMOJI}", inline=True)
+    embed.set_footer(text=S.PENDING_FOOTER)
     return tag_embed(embed, member)
 
 
@@ -54,26 +51,20 @@ def _result_embed(
     if won:
         profit = payout - bet
         embed  = discord.Embed(
-            title="📈 Crash — 🚀 Safe!",
-            description=(
-                f"Rocket crashed at **{crash}x** — your target was **{target}x**.\n"
-                f"You won **{payout:,}** {CURRENCY_EMOJI} (**+{profit:,}**)."
-            ),
+            title=S.SAFE_TITLE,
+            description=S.SAFE_DESC.format(crash=crash, target=target, payout=payout, CURRENCY_EMOJI=CURRENCY_EMOJI, profit=profit),
             color=0x2ECC71,
         )
     else:
         embed = discord.Embed(
-            title="📈 Crash — 💥 Crashed!",
-            description=(
-                f"Rocket crashed at **{crash}x** — before your target of **{target}x**.\n"
-                f"You lost **{bet:,}** {CURRENCY_EMOJI}."
-            ),
+            title=S.CRASHED_TITLE,
+            description=S.CRASHED_DESC.format(crash=crash, target=target, bet=bet, CURRENCY_EMOJI=CURRENCY_EMOJI),
             color=0xE74C3C,
         )
 
-    embed.add_field(name="Bet",        value=f"{bet:,} {CURRENCY_EMOJI}", inline=True)
-    embed.add_field(name="Target",     value=f"{target}x",                inline=True)
-    embed.add_field(name="Crashed At", value=f"{crash}x",                 inline=True)
+    embed.add_field(name=S.FIELD_BET,     value=f"{bet:,} {CURRENCY_EMOJI}", inline=True)
+    embed.add_field(name=S.FIELD_TARGET,  value=f"{target}x",                inline=True)
+    embed.add_field(name=S.FIELD_CRASHED, value=f"{crash}x",                 inline=True)
     return tag_embed(embed, member)
 
 
@@ -98,7 +89,7 @@ class CrashView(discord.ui.View):
     def _make_cb(self, target: float):
         async def callback(interaction: discord.Interaction):
             if interaction.user.id != self.user_id:
-                await interaction.response.send_message("This isn't your game!", ephemeral=True)
+                await interaction.response.send_message(S.NOT_YOUR_GAME, ephemeral=True)
                 return
 
             crash = _crash_point()
@@ -129,7 +120,7 @@ class CrashView(discord.ui.View):
                 pass
 
 
-@command("crash", description="Pick a multiplier target — cash out before the rocket crashes", usage="f.crash <bet>", category="Casino")
+@command("crash", description=S.DESCRIPTION, usage="f.crash <bet>", category="Casino")
 async def crash_command(message: Message, args: list[str]):
     if not args:
         await message.reply("Usage: `f.crash <bet>`  (e.g. `f.crash 500`, `f.crash all`, `f.crash 50%`)")
@@ -140,13 +131,13 @@ async def crash_command(message: Message, args: list[str]):
         await message.reply("Usage: `f.crash <bet>`  (e.g. `f.crash 500`, `f.crash all`, `f.crash 50%`)")
         return
     if bet < MIN_BET:
-        await message.reply(f"Minimum bet is {MIN_BET} {CURRENCY_EMOJI}")
+        await message.reply(S.MIN_BET_MSG.format(MIN_BET=MIN_BET, CURRENCY_EMOJI=CURRENCY_EMOJI))
         return
 
     try:
         remove_balance(message.author.id, bet)
     except ValueError:
-        await message.reply(f"You don't have enough {CURRENCY_NAME}!")
+        await message.reply(S.NOT_ENOUGH.format(CURRENCY_NAME=CURRENCY_NAME))
         return
 
     embed = _pending_embed(message.author, bet)

@@ -8,6 +8,7 @@ from bot.commands.casino.wallet import (
     remove_balance, add_balance, tag_embed, CURRENCY_NAME, CURRENCY_EMOJI, MIN_BET,
     resolve_bet,
 )
+from bot.strings import Roulette as S
 
 RED     = {1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36}
 BLACK   = {2, 4, 6, 8, 10, 11, 13, 15, 17, 20, 22, 24, 26, 28, 29, 31, 33, 35}
@@ -41,21 +42,21 @@ def _spin(bet: int, choice: str | int,
 
     if winnings > 0:
         add_balance(user_id, winnings)
-        desc  = f"\U0001f389 **You win {winnings:,}** {CURRENCY_EMOJI}!"
+        desc  = S.WIN_DESC.format(winnings=winnings, CURRENCY_EMOJI=CURRENCY_EMOJI)
         color = 0x2ECC71
     else:
-        desc  = f"\U0001f480 **You lose {bet:,}** {CURRENCY_EMOJI}."
+        desc  = S.LOSE_DESC.format(bet=bet, CURRENCY_EMOJI=CURRENCY_EMOJI)
         color = 0xE74C3C
 
-    embed = discord.Embed(title="\U0001f3b0 Roulette", color=color)
+    embed = discord.Embed(title=S.TITLE, color=color)
     embed.add_field(
-        name="The wheel lands on\u2026",
+        name=S.LANDS_ON,
         value=f"{result_emoji} **{result}** ({result_color})",
         inline=False,
     )
-    embed.add_field(name="Your Bet",
+    embed.add_field(name=S.YOUR_BET,
                     value=f"`{choice}` for {bet:,} {CURRENCY_EMOJI}", inline=True)
-    embed.add_field(name="Result", value=desc, inline=True)
+    embed.add_field(name=S.RESULT, value=desc, inline=True)
     return tag_embed(embed, member)
 
 
@@ -70,7 +71,7 @@ class RouletteView(discord.ui.View):
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.user_id:
-            await interaction.response.send_message("This isn't your game!", ephemeral=True)
+            await interaction.response.send_message(S.NOT_YOUR_GAME, ephemeral=True)
             return False
         return True
 
@@ -79,26 +80,26 @@ class RouletteView(discord.ui.View):
             remove_balance(self.user_id, self.bet)
         except ValueError:
             await interaction.response.send_message(
-                f"Not enough {CURRENCY_NAME}!", ephemeral=True
+                S.NOT_ENOUGH_SPIN.format(CURRENCY_NAME=CURRENCY_NAME), ephemeral=True
             )
             return
         self.choice = choice
         embed = _spin(self.bet, choice, self.user_id, self.member)
         await interaction.response.edit_message(embed=embed, view=self)
 
-    @discord.ui.button(label="Red (2.2x)",  style=discord.ButtonStyle.danger,   emoji="\U0001f534")
+    @discord.ui.button(label=S.RED_LABEL,   style=discord.ButtonStyle.danger,    emoji="\U0001f534")
     async def bet_red(self, interaction: discord.Interaction, _: discord.ui.Button):
         await self._bet_and_spin(interaction, "red")
 
-    @discord.ui.button(label="Black (2.2x)", style=discord.ButtonStyle.secondary, emoji="\u26ab")
+    @discord.ui.button(label=S.BLACK_LABEL, style=discord.ButtonStyle.secondary, emoji="\u26ab")
     async def bet_black(self, interaction: discord.Interaction, _: discord.ui.Button):
         await self._bet_and_spin(interaction, "black")
 
-    @discord.ui.button(label="Green (40x)", style=discord.ButtonStyle.success, emoji="\U0001f7e2")
+    @discord.ui.button(label=S.GREEN_LABEL, style=discord.ButtonStyle.success,   emoji="\U0001f7e2")
     async def bet_green(self, interaction: discord.Interaction, _: discord.ui.Button):
         await self._bet_and_spin(interaction, "green")
 
-    @discord.ui.button(label="Same Again", style=discord.ButtonStyle.primary, emoji="\U0001f501")
+    @discord.ui.button(label=S.SAME_LABEL,  style=discord.ButtonStyle.primary,   emoji="\U0001f501")
     async def same_again(self, interaction: discord.Interaction, _: discord.ui.Button):
         await self._bet_and_spin(interaction, self.choice)
 
@@ -107,27 +108,21 @@ class RouletteView(discord.ui.View):
             item.disabled = True
 
 
-@command("roulette", description="Play Roulette",
+@command("roulette", description=S.DESCRIPTION,
          usage="f.roulette <bet> <red/black/green/number>", category="Casino")
 async def roulette_command(message: Message, args: list[str]):
     if len(args) < 2:
-        await message.reply(
-            "Usage: `f.roulette <bet> <red|black|green|0-36>`\n"
-            "Red/Black pays **2.2x** \u2022 Green pays **40x** \u2022 Number pays **40x**"
-        )
+        await message.reply(S.USAGE)
         return
 
     bet = resolve_bet(args[0], message.author.id)
     if bet is None:
-        await message.reply(
-            "Usage: `f.roulette <bet> <red|black|green|0-36>`\n"
-            "Red/Black pays **2.2x** \u2022 Green pays **40x** \u2022 Number pays **40x**"
-        )
+        await message.reply(S.USAGE)
         return
     choice = args[1].lower()
 
     if bet < MIN_BET:
-        await message.reply(f"Minimum bet is {MIN_BET} {CURRENCY_EMOJI}")
+        await message.reply(S.MIN_BET_MSG.format(MIN_BET=MIN_BET, CURRENCY_EMOJI=CURRENCY_EMOJI))
         return
 
     if choice in ("red", "black", "green"):
@@ -135,13 +130,13 @@ async def roulette_command(message: Message, args: list[str]):
     elif choice.isdigit() and 0 <= int(choice) <= 36:
         choice = int(choice)
     else:
-        await message.reply("Bet on `red`, `black`, `green`, or a number `0-36`.")
+        await message.reply(S.INVALID_CHOICE)
         return
 
     try:
         remove_balance(message.author.id, bet)
     except ValueError:
-        await message.reply(f"You don't have enough {CURRENCY_NAME}!")
+        await message.reply(S.NOT_ENOUGH.format(CURRENCY_NAME=CURRENCY_NAME))
         return
 
     embed = _spin(bet, choice, message.author.id, message.author)

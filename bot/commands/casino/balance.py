@@ -5,6 +5,7 @@ from bot.commands import command
 from bot.commands.casino.wallet import (
     get_balance, get_leaderboard, tag_embed, CURRENCY_NAME, CURRENCY_EMOJI,
 )
+from bot.strings import Balance as S
 
 MEDALS = {0: "\U0001f947", 1: "\U0001f948", 2: "\U0001f949"}
 
@@ -32,19 +33,19 @@ class BalanceView(discord.ui.View):
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.member.id:
             await interaction.response.send_message(
-                "This isn't your wallet!", ephemeral=True
+                S.NOT_YOUR_WALLET, ephemeral=True
             )
             return False
         return True
 
-    @discord.ui.button(label="Earn Menu", style=discord.ButtonStyle.success, emoji="\U0001f4b0")
+    @discord.ui.button(label=S.EARN_MENU_LABEL, style=discord.ButtonStyle.success, emoji="\U0001f4b0")
     async def earn_menu(self, interaction: discord.Interaction, _: discord.ui.Button):
         from bot.commands.casino.earn import _build_embed, EarnView
         embed = _build_embed(self.member.id, self.member)
         view  = EarnView(self.member.id, self.member)
         await interaction.response.send_message(embed=embed, view=view)
 
-    @discord.ui.button(label="Leaderboard", style=discord.ButtonStyle.secondary, emoji="\U0001f3c6")
+    @discord.ui.button(label=S.LEADERBOARD_LABEL, style=discord.ButtonStyle.secondary, emoji="\U0001f3c6")
     async def leaderboard(self, interaction: discord.Interaction, _: discord.ui.Button):
         embed = _lb_embed(interaction.guild, self.member)
         await interaction.response.send_message(embed=embed)
@@ -54,13 +55,13 @@ class BalanceView(discord.ui.View):
             item.disabled = True
 
 
-@command("balance", description="Check your balance", usage="f.balance", category="Casino")
-@command("bal",     description="Check your balance", usage="f.bal",     category="Casino")
+@command("balance", description=S.DESCRIPTION, usage="f.balance", category="Casino")
+@command("bal",     description=S.DESCRIPTION, usage="f.bal",     category="Casino")
 async def balance_command(message: Message, args: list[str]):
     bal   = get_balance(message.author.id)
     embed = discord.Embed(
-        title=f"{CURRENCY_EMOJI} Wallet",
-        description=f"**{bal:,}** {CURRENCY_NAME}",
+        title=S.WALLET_TITLE.format(CURRENCY_EMOJI=CURRENCY_EMOJI),
+        description=S.WALLET_DESC.format(bal=bal, CURRENCY_NAME=CURRENCY_NAME),
         color=0xF1C40F,
     )
     tag_embed(embed, message.author)

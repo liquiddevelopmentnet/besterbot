@@ -8,6 +8,7 @@ from bot.commands.casino.wallet import (
     remove_balance, add_balance, get_balance, tag_embed, CURRENCY_NAME, CURRENCY_EMOJI, MIN_BET,
     resolve_bet,
 )
+from bot.strings import Bet as S
 
 
 class BetView(discord.ui.View):
@@ -19,10 +20,10 @@ class BetView(discord.ui.View):
         self.resolved = False
         self.message: discord.Message | None = None
 
-    @discord.ui.button(label="Accept", style=discord.ButtonStyle.success, emoji="\u2705")
+    @discord.ui.button(label=S.ACCEPT_LABEL, style=discord.ButtonStyle.success, emoji="\u2705")
     async def accept_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id != self.target.id:
-            await interaction.response.send_message("This challenge isn't for you!", ephemeral=True)
+            await interaction.response.send_message(S.NOT_FOR_YOU, ephemeral=True)
             return
 
         # Deduct from target
@@ -30,7 +31,7 @@ class BetView(discord.ui.View):
             remove_balance(self.target.id, self.bet)
         except ValueError:
             await interaction.response.send_message(
-                f"You don't have enough {CURRENCY_NAME}!", ephemeral=True
+                S.NOT_ENOUGH_CURRENCY.format(CURRENCY_NAME=CURRENCY_NAME), ephemeral=True
             )
             return
 
@@ -43,14 +44,14 @@ class BetView(discord.ui.View):
         add_balance(winner.id, pot)
 
         embed = tag_embed(discord.Embed(
-            title="\U0001f3b2 50:50 Bet \u2014 Result",
+            title=S.RESULT_TITLE,
             color=0xFFD700,
         ), interaction.user)
         embed.add_field(
-            name="\U0001fa99 Coin Flip",
-            value=(
-                f"**{winner.display_name}** wins **{pot:,}** {CURRENCY_EMOJI}!\n"
-                f"**{loser.display_name}** loses their **{self.bet:,}** {CURRENCY_EMOJI}."
+            name=S.COIN_FLIP_NAME,
+            value=S.COIN_FLIP_VALUE.format(
+                winner=winner.display_name, pot=pot, CURRENCY_EMOJI=CURRENCY_EMOJI,
+                loser=loser.display_name, bet=self.bet,
             ),
             inline=False,
         )
@@ -60,18 +61,18 @@ class BetView(discord.ui.View):
         await interaction.response.edit_message(embed=embed, view=self)
         self.stop()
 
-    @discord.ui.button(label="Decline", style=discord.ButtonStyle.danger, emoji="\u274c")
+    @discord.ui.button(label=S.DECLINE_LABEL, style=discord.ButtonStyle.danger, emoji="\u274c")
     async def decline_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id != self.target.id:
-            await interaction.response.send_message("This challenge isn't for you!", ephemeral=True)
+            await interaction.response.send_message(S.NOT_FOR_YOU, ephemeral=True)
             return
 
         self.resolved = True
         add_balance(self.challenger.id, self.bet)
 
         embed = tag_embed(discord.Embed(
-            title="\U0001f3b2 50:50 Bet \u2014 Declined",
-            description=f"**{self.target.display_name}** declined. Bet refunded.",
+            title=S.DECLINED_TITLE,
+            description=S.DECLINED_DESC.format(name=self.target.display_name),
             color=0x95A5A6,
         ), interaction.user)
 
@@ -84,8 +85,8 @@ class BetView(discord.ui.View):
         if not self.resolved:
             add_balance(self.challenger.id, self.bet)
             embed = discord.Embed(
-                title="\U0001f3b2 50:50 Bet \u2014 Expired",
-                description=f"**{self.target.display_name}** didn't respond. Bet refunded.",
+                title=S.EXPIRED_TITLE,
+                description=S.EXPIRED_DESC.format(name=self.target.display_name),
                 color=0x95A5A6,
             )
             for item in self.children:
@@ -97,7 +98,7 @@ class BetView(discord.ui.View):
                     pass
 
 
-@command("bet", description="50:50 bet against another player", usage="f.bet @user <amount>", category="Casino")
+@command("bet", description=S.DESCRIPTION, usage="f.bet @user <amount>", category="Casino")
 async def bet_command(message: Message, args: list[str]):
     if len(args) < 2 or not message.mentions:
         await message.reply("Usage: `f.bet @user <amount>`")
@@ -105,41 +106,43 @@ async def bet_command(message: Message, args: list[str]):
 
     target = message.mentions[0]
     if target.id == message.author.id:
-        await message.reply("You can't bet against yourself.")
+        await message.reply(S.CANT_BET_SELF)
         return
     if target.bot:
-        await message.reply("You can't bet against a bot.")
+        await message.reply(S.CANT_BET_BOT)
         return
 
     raw_amount = args[-1]
     bet = resolve_bet(raw_amount, message.author.id)
     if bet is None or bet <= 0:
-        await message.reply("Amount must be a positive number (e.g. `500`, `all`, `50%`).")
+        await message.reply(S.INVALID_AMOUNT)
         return
     if bet < MIN_BET:
-        await message.reply(f"Minimum bet is {MIN_BET} {CURRENCY_EMOJI}")
+        await message.reply(S.MIN_BET_MSG.format(MIN_BET=MIN_BET, CURRENCY_EMOJI=CURRENCY_EMOJI))
         return
 
     # Check target has enough
     if get_balance(target.id) < bet:
-        await message.reply(f"**{target.display_name}** doesn't have enough {CURRENCY_NAME}!")
+        await message.reply(S.TARGET_BROKE.format(name=target.display_name, CURRENCY_NAME=CURRENCY_NAME))
         return
 
     # Deduct from challenger
     try:
         remove_balance(message.author.id, bet)
     except ValueError:
-        await message.reply(f"You don't have enough {CURRENCY_NAME}!")
+        await message.reply(S.SENDER_BROKE.format(CURRENCY_NAME=CURRENCY_NAME))
         return
 
     view = BetView(message.author, target, bet)
 
     embed = tag_embed(discord.Embed(
-        title="\U0001f3b2 50:50 Bet Challenge!",
-        description=(
-            f"**{message.author.display_name}** challenges **{target.display_name}** "
-            f"for **{bet:,}** {CURRENCY_EMOJI}!\n\n"
-            f"{target.mention}, do you accept?"
+        title=S.CHALLENGE_TITLE,
+        description=S.CHALLENGE_DESC.format(
+            challenger=message.author.display_name,
+            target=target.display_name,
+            bet=bet,
+            CURRENCY_EMOJI=CURRENCY_EMOJI,
+            mention=target.mention,
         ),
         color=0xF1C40F,
     ), message.author)

@@ -6,6 +6,7 @@ from discord import Message
 
 from bot.commands import command
 from bot.commands.media import voice
+from bot.strings import YTPlay as S
 
 YTDL_OPTIONS = {
     'format': 'bestaudio/best',
@@ -31,27 +32,27 @@ ytdl = yt_dlp.YoutubeDL(YTDL_OPTIONS)
 
 @command(
     "ytplay",
-    description="Play YouTube audio",
+    description=S.DESCRIPTION,
     usage="f.ytplay <query>",
     category="Media",
 )
 async def ytplay_command(message: Message, args: list[str]):
     if not message.author.voice:
-        await message.reply("You need to be in a voice channel to play music.")
+        await message.reply(S.NO_VOICE_CHANNEL)
         return
 
     query = " ".join(args)
     if not query:
-        await message.reply("Please provide a search query or a YouTube link.")
+        await message.reply(S.NO_QUERY)
         return
 
-    status_msg = await message.reply(f"🔍 Searching for `{query}`...")
+    status_msg = await message.reply(S.SEARCHING.format(query=query))
     loop = asyncio.get_running_loop()
 
     try:
         info = await loop.run_in_executor(None, lambda: ytdl.extract_info(query, download=False))
     except Exception as e:
-        await status_msg.edit(content=f"❌ Could not find or play track: {e}")
+        await status_msg.edit(content=S.ERROR.format(error=e))
         return
 
     if 'entries' in info:
@@ -73,7 +74,7 @@ async def ytplay_command(message: Message, args: list[str]):
 
     voice.vc.play(source, after=lambda e: print(f'Finished/Error: {e}') if e else None)
 
-    await status_msg.edit(content=f"🎵 **Now Playing (70% Vol):** [{song_title}](<{webpage_url}>)")
+    await status_msg.edit(content=S.NOW_PLAYING.format(title=song_title, url=webpage_url))
 
     while voice.vc.is_playing():
         await asyncio.sleep(1)

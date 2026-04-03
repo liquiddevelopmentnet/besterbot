@@ -3,6 +3,7 @@ from discord import Message
 
 from bot.commands import command
 from bot.commands.casino.wallet import get_leaderboard_with_worth, tag_embed, CURRENCY_NAME, CURRENCY_EMOJI
+from bot.strings import Leaderboard as S
 
 MEDALS = {0: "\U0001f947", 1: "\U0001f948", 2: "\U0001f949"}
 
@@ -24,11 +25,11 @@ async def _build_embed(guild: discord.Guild, requester: discord.Member) -> disco
             line += f"  *(+{inv_worth:,} inv — {total:,} total)*"
         lines.append(line)
     embed = discord.Embed(
-        title=f"{CURRENCY_EMOJI} {CURRENCY_NAME} Leaderboard",
-        description="\n".join(lines) or "No players yet.",
+        title=S.TITLE.format(CURRENCY_EMOJI=CURRENCY_EMOJI, CURRENCY_NAME=CURRENCY_NAME),
+        description="\n".join(lines) or S.EMPTY,
         color=0xF1C40F,
     )
-    embed.set_footer(text="Sorted by total wealth (balance + inventory)")
+    embed.set_footer(text=S.FOOTER)
     return tag_embed(embed, requester)
 
 
@@ -37,7 +38,7 @@ class LeaderboardView(discord.ui.View):
         super().__init__(timeout=180)
         self.requester = requester
 
-    @discord.ui.button(label="Refresh", style=discord.ButtonStyle.secondary, emoji="\U0001f504")
+    @discord.ui.button(label=S.REFRESH_LABEL, style=discord.ButtonStyle.secondary, emoji="\U0001f504")
     async def refresh(self, interaction: discord.Interaction, _: discord.ui.Button):
         embed = await _build_embed(interaction.guild, self.requester)
         await interaction.response.edit_message(embed=embed, view=self)
@@ -47,8 +48,8 @@ class LeaderboardView(discord.ui.View):
             item.disabled = True
 
 
-@command("leaderboard", description="Top balances", usage="f.leaderboard", category="Casino")
-@command("lb",          description="Top balances", usage="f.lb",          category="Casino")
+@command("leaderboard", description=S.DESCRIPTION, usage="f.leaderboard", category="Casino")
+@command("lb",          description=S.DESCRIPTION, usage="f.lb",          category="Casino")
 async def leaderboard_command(message: Message, args: list[str]):
     embed = await _build_embed(message.guild, message.author)
     view  = LeaderboardView(message.author)

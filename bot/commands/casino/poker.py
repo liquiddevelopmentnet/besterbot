@@ -7,6 +7,7 @@ from bot.commands.casino.wallet import (
     resolve_bet,
 )
 from bot.commands.casino.cards import Deck, hand_str, evaluate_poker, POKER_PAYOUTS
+from bot.strings import Poker as S
 
 
 class CardSelect(discord.ui.Select):
@@ -20,7 +21,7 @@ class CardSelect(discord.ui.Select):
             for i, card in enumerate(hand)
         ]
         super().__init__(
-            placeholder="Select cards to DISCARD (or skip to keep all)",
+            placeholder=S.DISCARD_PLACEHOLDER,
             min_values=0,
             max_values=5,
             options=options,
@@ -45,7 +46,7 @@ class PokerView(discord.ui.View):
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.player_id:
-            await interaction.response.send_message("This isn't your game!", ephemeral=True)
+            await interaction.response.send_message(S.NOT_YOUR_GAME, ephemeral=True)
             return False
         return True
 
@@ -57,7 +58,7 @@ class PokerView(discord.ui.View):
                 lines.append(f"`{name:<18}` **{mult}x**")
         return "\n".join(lines)
 
-    @discord.ui.button(label="Draw", style=discord.ButtonStyle.primary, emoji="\U0001f0cf", row=2)
+    @discord.ui.button(label=S.DRAW_LABEL, style=discord.ButtonStyle.primary, emoji="\U0001f0cf", row=2)
     async def draw_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         # Replace discarded cards
         for i in self.to_discard:
@@ -71,25 +72,25 @@ class PokerView(discord.ui.View):
             add_balance(self.player_id, winnings)
             profit = winnings - self.bet
             if profit > 0:
-                result = f"\U0001f389 **{hand_name}!** +{profit:,} {CURRENCY_EMOJI} profit"
+                result = S.WIN_RESULT.format(hand_name=hand_name, profit=profit, CURRENCY_EMOJI=CURRENCY_EMOJI)
             else:
-                result = f"\U0001f91d **{hand_name}!** Bet returned."
+                result = S.PUSH_RESULT.format(hand_name=hand_name)
             color = 0x2ECC71 if profit > 0 else 0xF39C12
         else:
-            result = f"\U0001f480 **{hand_name}** \u2014 Lost {self.bet:,} {CURRENCY_EMOJI}"
+            result = S.LOSE_RESULT.format(hand_name=hand_name, bet=self.bet, CURRENCY_EMOJI=CURRENCY_EMOJI)
             color = 0xE74C3C
 
         embed = tag_embed(discord.Embed(
-            title=f"\U0001f3b0 Video Poker \u2014 Bet: {self.bet:,} {CURRENCY_EMOJI}",
+            title=S.TITLE.format(bet=self.bet, CURRENCY_EMOJI=CURRENCY_EMOJI),
             color=color,
         ), self.member)
         discarded = len(self.to_discard)
         embed.add_field(
-            name=f"Final Hand (replaced {discarded} card{'s' if discarded != 1 else ''})",
+            name=S.FINAL_HAND.format(discarded=discarded, s="s" if discarded != 1 else ""),
             value=hand_str(self.hand),
             inline=False,
         )
-        embed.add_field(name="Result", value=result, inline=False)
+        embed.add_field(name=S.RESULT, value=result, inline=False)
 
         for item in self.children:
             item.disabled = True
@@ -107,12 +108,12 @@ class PokerView(discord.ui.View):
         for item in self.children:
             item.disabled = True
         embed = tag_embed(discord.Embed(
-            title=f"\U0001f3b0 Video Poker \u2014 Bet: {self.bet:,} {CURRENCY_EMOJI}",
-            description="\u23f0 Timed out \u2014 auto-drew with current hand.",
+            title=S.TITLE.format(bet=self.bet, CURRENCY_EMOJI=CURRENCY_EMOJI),
+            description=S.TIMEOUT_DESC,
             color=0x95A5A6,
         ), self.member)
-        embed.add_field(name="Final Hand", value=hand_str(self.hand), inline=False)
-        embed.add_field(name="Hand", value=hand_name, inline=False)
+        embed.add_field(name=S.TIMEOUT_HAND, value=hand_str(self.hand), inline=False)
+        embed.add_field(name=S.TIMEOUT_HAND_NAME, value=hand_name, inline=False)
         if self.message:
             try:
                 await self.message.edit(embed=embed, view=self)
@@ -120,7 +121,7 @@ class PokerView(discord.ui.View):
                 pass
 
 
-@command("poker", description="Video Poker (5-card draw)", usage="f.poker <bet>", category="Casino")
+@command("poker", description=S.DESCRIPTION, usage="f.poker <bet>", category="Casino")
 async def poker_command(message: Message, args: list[str]):
     if not args:
         await message.reply("Usage: `f.poker <bet>`  (e.g. `f.poker 500`, `f.poker all`, `f.poker 50%`)")
@@ -131,13 +132,13 @@ async def poker_command(message: Message, args: list[str]):
         await message.reply("Usage: `f.poker <bet>`  (e.g. `f.poker 500`, `f.poker all`, `f.poker 50%`)")
         return
     if bet < MIN_BET:
-        await message.reply(f"Minimum bet is {MIN_BET} {CURRENCY_EMOJI}")
+        await message.reply(S.MIN_BET_MSG.format(MIN_BET=MIN_BET, CURRENCY_EMOJI=CURRENCY_EMOJI))
         return
 
     try:
         remove_balance(message.author.id, bet)
     except ValueError:
-        await message.reply(f"You don't have enough {CURRENCY_NAME}!")
+        await message.reply(S.NOT_ENOUGH.format(CURRENCY_NAME=CURRENCY_NAME))
         return
 
     deck = Deck()
@@ -146,17 +147,16 @@ async def poker_command(message: Message, args: list[str]):
     view = PokerView(message.author.id, message.author, bet, deck, hand)
 
     embed = tag_embed(discord.Embed(
-        title=f"\U0001f3b0 Video Poker \u2014 Bet: {bet:,} {CURRENCY_EMOJI}",
+        title=S.TITLE.format(bet=bet, CURRENCY_EMOJI=CURRENCY_EMOJI),
         color=0x3498DB,
     ), message.author)
-    embed.add_field(name="Your Hand", value=hand_str(hand), inline=False)
+    embed.add_field(name=S.YOUR_HAND, value=hand_str(hand), inline=False)
     embed.add_field(
-        name="How to Play",
-        value="Select cards to **discard** from the dropdown, then press **Draw**.\n"
-              "Leave empty to keep all cards.",
+        name=S.HOW_TO_PLAY_NAME,
+        value=S.HOW_TO_PLAY_VALUE,
         inline=False,
     )
-    embed.add_field(name="Payouts", value=view._payout_table(), inline=False)
+    embed.add_field(name=S.PAYOUTS, value=view._payout_table(), inline=False)
 
     msg = await message.channel.send(embed=embed, view=view)
     view.message = msg

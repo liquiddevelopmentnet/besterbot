@@ -8,20 +8,13 @@ from bot.commands.casino.wallet import (
     CURRENCY_NAME, CURRENCY_EMOJI,
 )
 from bot.commands.casino.items import create_item, item_full_name, RARITIES
+from bot.strings import Case as S
 
 CASE_COST = 800
 CASE_NAME  = "BesterBot Capsule"
 
 # user_id → item dict of the currently undecided case
 _pending_cases: dict[int, dict] = {}
-
-_OPEN_LINE: dict[str, str] = {
-    "lightblue": "Du hast eine Case geöffnet.",
-    "blue":       "Nicht schlecht!",
-    "purple":     "Nices Drop! 🔥",
-    "pink":       "COVERT DROP! 🔥🔥",
-    "gold":       "★ RARE SPECIAL — JACKPOT! 🌟",
-}
 
 
 def _build_embed(
@@ -34,30 +27,30 @@ def _build_embed(
 ) -> discord.Embed:
     info     = RARITIES[item["rarity"]]
     name     = item_full_name(item)
-    headline = _OPEN_LINE[item["rarity"]]
+    headline = S.OPEN_LINES[item["rarity"]]
 
     desc = f"{info['emoji']} **{info['label']}** — {headline}"
     if auto_sold_prev:
         prev_name = item_full_name(auto_sold_prev)
         desc = (
-            f"💰 **{prev_name}** für **{auto_sold_prev['sell_price']:,}** {CURRENCY_EMOJI} verkauft.\n\n"
+            S.PREV_SOLD_PREFIX.format(prev_name=prev_name, price=auto_sold_prev['sell_price'], CURRENCY_EMOJI=CURRENCY_EMOJI)
             + desc
         )
 
     embed = discord.Embed(title=f"🎁 {CASE_NAME}", description=desc, color=info["color"])
-    embed.add_field(name="Item",         value=f"**{name}**",                                inline=False)
-    embed.add_field(name="Float",        value=f"`{item['float']:.6f}`",                      inline=True)
-    embed.add_field(name="Pattern",      value=f"`{item['pattern']}`",                        inline=True)
-    embed.add_field(name="StatTrak™",    value="✅" if item["stattrak"] else "❌",             inline=True)
-    embed.add_field(name="Verkaufswert", value=f"**{item['sell_price']:,}** {CURRENCY_EMOJI}", inline=True)
+    embed.add_field(name=S.FIELD_ITEM,       value=f"**{name}**",                                inline=False)
+    embed.add_field(name=S.FIELD_FLOAT,      value=f"`{item['float']:.6f}`",                      inline=True)
+    embed.add_field(name=S.FIELD_PATTERN,    value=f"`{item['pattern']}`",                        inline=True)
+    embed.add_field(name=S.FIELD_STATTRAK,   value="✅" if item["stattrak"] else "❌",             inline=True)
+    embed.add_field(name=S.FIELD_SELLWERT,   value=f"**{item['sell_price']:,}** {CURRENCY_EMOJI}", inline=True)
 
     if item.get("image_url"):
         embed.set_image(url=item["image_url"])
 
     if kept is True:
-        embed.add_field(name="Status", value="🎒 Ins Inventar hinzugefügt", inline=False)
+        embed.add_field(name=S.FIELD_STATUS, value=S.STATUS_KEPT, inline=False)
     elif sold_for is not None:
-        embed.add_field(name="Status", value=f"💰 Verkauft für **{sold_for:,}** {CURRENCY_EMOJI}", inline=False)
+        embed.add_field(name=S.FIELD_STATUS, value=S.STATUS_SOLD.format(price=sold_for, CURRENCY_EMOJI=CURRENCY_EMOJI), inline=False)
 
     return tag_embed(embed, member)
 
@@ -80,7 +73,7 @@ class CaseResultView(discord.ui.View):
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.user_id:
-            await interaction.response.send_message("Das ist nicht deine Case!", ephemeral=True)
+            await interaction.response.send_message(S.NOT_YOUR_CASE, ephemeral=True)
             return False
         return True
 
@@ -116,7 +109,7 @@ class CaseResultView(discord.ui.View):
         self._sync_buttons()
 
     # ── 1. Behalten ───────────────────────────────────────────────────────────
-    @discord.ui.button(label="Behalten", style=discord.ButtonStyle.success, emoji="🎒", row=0)
+    @discord.ui.button(label=S.KEEP_LABEL, style=discord.ButtonStyle.success, emoji="🎒", row=0)
     async def keep(self, interaction: discord.Interaction, _: discord.ui.Button):
         if self._done:
             return
@@ -127,7 +120,7 @@ class CaseResultView(discord.ui.View):
         )
 
     # ── 2. Verkaufen ──────────────────────────────────────────────────────────
-    @discord.ui.button(label="Verkaufen", style=discord.ButtonStyle.danger, emoji="💰", row=0)
+    @discord.ui.button(label=S.SELL_LABEL, style=discord.ButtonStyle.danger, emoji="💰", row=0)
     async def sell_btn(self, interaction: discord.Interaction, _: discord.ui.Button):
         if self._done:
             return
@@ -138,7 +131,7 @@ class CaseResultView(discord.ui.View):
         )
 
     # ── 3. Behalten & Noch mal ────────────────────────────────────────────────
-    @discord.ui.button(label="Behalten & Noch mal", style=discord.ButtonStyle.success,
+    @discord.ui.button(label=S.KEEP_OPEN_LABEL, style=discord.ButtonStyle.success,
                        emoji="🎁", row=1)
     async def keep_open(self, interaction: discord.Interaction, _: discord.ui.Button):
         if self._done:
@@ -149,7 +142,7 @@ class CaseResultView(discord.ui.View):
             new_item = self._open_next()
         except ValueError:
             await interaction.response.send_message(
-                f"Nicht genug {CURRENCY_NAME}! (brauchst {CASE_COST:,} {CURRENCY_EMOJI})",
+                S.NOT_ENOUGH.format(CURRENCY_NAME=CURRENCY_NAME, cost=CASE_COST, CURRENCY_EMOJI=CURRENCY_EMOJI),
                 ephemeral=True,
             )
             return
@@ -159,7 +152,7 @@ class CaseResultView(discord.ui.View):
         )
 
     # ── 4. Verkaufen & Noch mal ───────────────────────────────────────────────
-    @discord.ui.button(label="Verkaufen & Noch mal", style=discord.ButtonStyle.danger,
+    @discord.ui.button(label=S.SELL_OPEN_LABEL, style=discord.ButtonStyle.danger,
                        emoji="🎁", row=1)
     async def sell_open(self, interaction: discord.Interaction, _: discord.ui.Button):
         if self._done:
@@ -170,7 +163,7 @@ class CaseResultView(discord.ui.View):
             new_item = self._open_next()
         except ValueError:
             await interaction.response.send_message(
-                f"Nicht genug {CURRENCY_NAME}! (brauchst {CASE_COST:,} {CURRENCY_EMOJI})",
+                S.NOT_ENOUGH.format(CURRENCY_NAME=CURRENCY_NAME, cost=CASE_COST, CURRENCY_EMOJI=CURRENCY_EMOJI),
                 ephemeral=True,
             )
             return
@@ -187,15 +180,14 @@ class CaseResultView(discord.ui.View):
         self._disable_all()
 
 
-@command("case", description="Öffne eine CS2-Case für 800 Maka",
+@command("case", description=S.DESCRIPTION,
          usage="f.case", category="Casino")
 async def case_command(message: Message, args: list[str]):
     try:
         remove_balance(message.author.id, CASE_COST)
     except ValueError:
         await message.reply(
-            f"Du brauchst mindestens **{CASE_COST:,}** {CURRENCY_EMOJI} um eine Case zu öffnen!\n"
-            f"Aktuell hast du nicht genug {CURRENCY_NAME}."
+            S.BROKE_MSG.format(cost=CASE_COST, CURRENCY_EMOJI=CURRENCY_EMOJI, CURRENCY_NAME=CURRENCY_NAME)
         )
         return
 

@@ -11,6 +11,7 @@ from bot.commands.casino.wallet import (
     add_balance, get_cooldown, set_cooldown, tag_embed,
     CURRENCY_NAME, CURRENCY_EMOJI,
 )
+from bot.strings import Daily as S
 
 _CET = ZoneInfo("Europe/Berlin")   # handles both CET (UTC+1) and CEST (UTC+2)
 _DAILY_KEY = "last_daily"
@@ -30,7 +31,7 @@ def _seconds_until_midnight_cet() -> int:
     return int((midnight - now).total_seconds())
 
 
-@command("daily", description="Claim your daily 30 000 Maka Flaschen", usage="f.daily", category="Casino")
+@command("daily", description=S.DESCRIPTION, usage="f.daily", category="Casino")
 async def daily_command(message: Message, args: list[str]):
     today = _today_cet()
     last = get_cooldown(message.author.id, _DAILY_KEY)
@@ -40,8 +41,8 @@ async def daily_command(message: Message, args: list[str]):
         h, rem = divmod(secs, 3600)
         m, s = divmod(rem, 60)
         embed = discord.Embed(
-            title=f"{CURRENCY_EMOJI} Daily Already Claimed",
-            description=f"Come back in **{h}h {m}m {s}s** (resets at midnight CET).",
+            title=S.ALREADY_CLAIMED_TITLE.format(CURRENCY_EMOJI=CURRENCY_EMOJI),
+            description=S.ALREADY_CLAIMED_DESC.format(h=h, m=m, s=s),
             color=0xE74C3C,
         )
         tag_embed(embed, message.author)
@@ -52,10 +53,10 @@ async def daily_command(message: Message, args: list[str]):
     set_cooldown(message.author.id, _DAILY_KEY, today)
 
     embed = discord.Embed(
-        title=f"{CURRENCY_EMOJI} Daily Reward Claimed!",
-        description=f"+**{_DAILY_AMOUNT:,}** {CURRENCY_NAME}\nNew balance: **{new_bal:,}** {CURRENCY_EMOJI}",
+        title=S.REWARD_TITLE.format(CURRENCY_EMOJI=CURRENCY_EMOJI),
+        description=S.REWARD_DESC.format(amount=_DAILY_AMOUNT, CURRENCY_NAME=CURRENCY_NAME, new_bal=new_bal, CURRENCY_EMOJI=CURRENCY_EMOJI),
         color=0x2ECC71,
     )
-    embed.set_footer(text="Resets at midnight CET.")
+    embed.set_footer(text=S.REWARD_FOOTER)
     tag_embed(embed, message.author)
     await message.reply(embed=embed)

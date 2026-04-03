@@ -11,6 +11,7 @@ from bot.commands.casino.wallet import (
 from bot.commands.casino.items import (
     create_item, item_full_name, RARITIES, RARITY_ORDER,
 )
+from bot.strings import Tradeup as S
 
 TRADE_UP_COUNT = 10
 
@@ -47,11 +48,11 @@ class TradeUpConfirmView(discord.ui.View):
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.user_id:
-            await interaction.response.send_message("Nicht dein Trade Up!", ephemeral=True)
+            await interaction.response.send_message(S.NOT_YOUR_TRADEUP, ephemeral=True)
             return False
         return True
 
-    @discord.ui.button(label="Trade Up!", style=discord.ButtonStyle.success, emoji="⬆️")
+    @discord.ui.button(label=S.CONFIRM_LABEL, style=discord.ButtonStyle.success, emoji="⬆️")
     async def confirm(self, interaction: discord.Interaction, _: discord.ui.Button):
         if self._done:
             return
@@ -64,7 +65,7 @@ class TradeUpConfirmView(discord.ui.View):
         missing = [it for it in self.items if it["id"] not in current_ids]
         if missing:
             await interaction.response.edit_message(
-                content="❌ Einige Items wurden zwischenzeitlich entfernt. Trade Up abgebrochen.",
+                content=S.MISSING_ITEMS,
                 embed=None,
                 view=self,
             )
@@ -81,19 +82,21 @@ class TradeUpConfirmView(discord.ui.View):
 
         info = RARITIES[result["rarity"]]
         embed = discord.Embed(
-            title="⬆️ Trade Up erfolgreich!",
-            description=(
-                f"10× {RARITIES[self.rarity]['emoji']} {RARITIES[self.rarity]['label']} "
-                f"→ {info['emoji']} **{info['label']}**"
+            title=S.SUCCESS_TITLE,
+            description=S.SUCCESS_DESC.format(
+                from_emoji=RARITIES[self.rarity]['emoji'],
+                from_label=RARITIES[self.rarity]['label'],
+                to_emoji=info['emoji'],
+                to_label=info['label'],
             ),
             color=info["color"],
         )
-        embed.add_field(name="Erhalten",   value=f"**{item_full_name(result)}**", inline=False)
-        embed.add_field(name="Float",      value=f"`{result['float']:.6f}`",      inline=True)
-        embed.add_field(name="Pattern",    value=f"`{result['pattern']}`",        inline=True)
-        embed.add_field(name="StatTrak™",  value="✅" if result["stattrak"] else "❌", inline=True)
+        embed.add_field(name=S.FIELD_ERHALTEN,  value=f"**{item_full_name(result)}**", inline=False)
+        embed.add_field(name=S.FIELD_FLOAT,     value=f"`{result['float']:.6f}`",      inline=True)
+        embed.add_field(name=S.FIELD_PATTERN,   value=f"`{result['pattern']}`",        inline=True)
+        embed.add_field(name=S.FIELD_STATTRAK,  value="✅" if result["stattrak"] else "❌", inline=True)
         embed.add_field(
-            name="Verkaufswert",
+            name=S.FIELD_SELL,
             value=f"**{result['sell_price']:,}** {CURRENCY_EMOJI}",
             inline=True,
         )
@@ -102,13 +105,13 @@ class TradeUpConfirmView(discord.ui.View):
         tag_embed(embed, self.member)
         await interaction.response.edit_message(embed=embed, view=self)
 
-    @discord.ui.button(label="Abbrechen", style=discord.ButtonStyle.secondary, emoji="✖️")
+    @discord.ui.button(label=S.CANCEL_LABEL, style=discord.ButtonStyle.secondary, emoji="✖️")
     async def cancel(self, interaction: discord.Interaction, _: discord.ui.Button):
         if self._done:
             return
         self._done = True
         self._disable_all()
-        await interaction.response.edit_message(content="Trade Up abgebrochen.", embed=None, view=self)
+        await interaction.response.edit_message(content=S.CANCEL_CONTENT, embed=None, view=self)
 
     def _disable_all(self) -> None:
         for child in self.children:
@@ -118,7 +121,7 @@ class TradeUpConfirmView(discord.ui.View):
         self._disable_all()
 
 
-@command("tradeup", description="Tausche 10 Items einer Seltenheit für 1 Item der nächsten Stufe",
+@command("tradeup", description=S.DESCRIPTION,
          usage="f.tradeup [lightblue|blue|purple|pink]", category="Casino")
 async def tradeup_command(message: Message, args: list[str]):
     inv = get_inventory(message.author.id)
@@ -135,15 +138,11 @@ async def tradeup_command(message: Message, args: list[str]):
                 f"→ {RARITIES[next_r]['emoji']} {RARITIES[next_r]['label']}"
             )
         embed = discord.Embed(
-            title="⬆️ Trade Up Contract",
-            description=(
-                "Tausche **10 Items** gleicher Seltenheit gegen **1 Item** der nächsten Stufe.\n"
-                "Die 10 günstigsten Items werden automatisch ausgewählt.\n\n"
-                + "\n".join(lines)
-            ),
+            title=S.OVERVIEW_TITLE,
+            description=S.OVERVIEW_DESC.format(lines="\n".join(lines)),
             color=0x5865F2,
         )
-        embed.set_footer(text="f.tradeup <lightblue|blue|purple|pink>")
+        embed.set_footer(text=S.OVERVIEW_FOOTER)
         tag_embed(embed, message.author)
         await message.reply(embed=embed)
         return
@@ -151,18 +150,18 @@ async def tradeup_command(message: Message, args: list[str]):
     # ── Rarity given: confirm trade up ──────────────────────────────────────
     rarity = _RARITY_ALIASES.get(args[0].lower())
     if rarity is None:
-        await message.reply(
-            "Ungültige Seltenheit. Mögliche Werte: `lightblue`, `blue`, `purple`, `pink`\n"
-            "(Gold kann nicht geupgradet werden)"
-        )
+        await message.reply(S.INVALID_RARITY)
         return
 
     candidates = [it for it in inv if it["rarity"] == rarity]
     if len(candidates) < TRADE_UP_COUNT:
         await message.reply(
-            f"Du brauchst mindestens **{TRADE_UP_COUNT}** "
-            f"{RARITIES[rarity]['emoji']} {RARITIES[rarity]['label']} Items. "
-            f"Aktuell hast du **{len(candidates)}**."
+            S.NOT_ENOUGH_ITEMS.format(
+                count=TRADE_UP_COUNT,
+                emoji=RARITIES[rarity]['emoji'],
+                label=RARITIES[rarity]['label'],
+                have=len(candidates),
+            )
         )
         return
 
@@ -176,15 +175,18 @@ async def tradeup_command(message: Message, args: list[str]):
         for i, it in enumerate(cheapest)
     ]
     embed = discord.Embed(
-        title="⬆️ Trade Up Contract",
-        description=(
-            f"Diese **10** {RARITIES[rarity]['emoji']} {RARITIES[rarity]['label']} Items "
-            f"(Gesamtwert: **{total_in:,}** {CURRENCY_EMOJI}) werden getauscht gegen\n"
-            f"**1** {RARITIES[next_r]['emoji']} {RARITIES[next_r]['label']} Item:"
+        title=S.CONFIRM_TITLE,
+        description=S.CONFIRM_DESC.format(
+            from_emoji=RARITIES[rarity]['emoji'],
+            from_label=RARITIES[rarity]['label'],
+            total_in=total_in,
+            CURRENCY_EMOJI=CURRENCY_EMOJI,
+            to_emoji=RARITIES[next_r]['emoji'],
+            to_label=RARITIES[next_r]['label'],
         ),
         color=RARITIES[rarity]["color"],
     )
-    embed.add_field(name="Einzutauschende Items", value="\n".join(lines), inline=False)
+    embed.add_field(name=S.FIELD_ITEMS_IN, value="\n".join(lines), inline=False)
     tag_embed(embed, message.author)
 
     view = TradeUpConfirmView(message.author.id, message.author, rarity, cheapest)

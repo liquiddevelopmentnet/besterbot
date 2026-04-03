@@ -6,6 +6,7 @@ from discord import Message
 from bot.commands import command
 from bot.commands.casino.wallet import get_all_inventories, tag_embed, CURRENCY_EMOJI
 from bot.commands.casino.items import item_full_name, RARITIES, RARITY_ORDER
+from bot.strings import Skinranking as S
 
 TOP_N = 15
 
@@ -38,19 +39,19 @@ def _build_embed(
             key=lambda it: (_RARITY_RANK[it["rarity"]], it["sell_price"]),
             reverse=True,
         )
-        title  = "🏆 Seltenste Items auf dem Server"
-        footer = "Sortiert nach Seltenheit · f.skinranking value für Wert-Ranking"
+        title  = S.TITLE_RARITY
+        footer = S.FOOTER_RARITY
     else:
         sorted_items = sorted(flat, key=lambda it: it["sell_price"], reverse=True)
-        title  = "💰 Wertvollste Items auf dem Server"
-        footer = "Sortiert nach Wert · f.skinranking rarity für Seltenheits-Ranking"
+        title  = S.TITLE_VALUE
+        footer = S.FOOTER_VALUE
 
     top = sorted_items[:TOP_N]
 
     if not top:
         embed = discord.Embed(
             title       = title,
-            description = "Noch keine Items auf dem Server. Öffnet Cases mit `f.case`!",
+            description = S.EMPTY_DESC,
             color       = 0xF1C40F,
         )
         return tag_embed(embed, member)
@@ -79,12 +80,8 @@ def _build_embed(
         color       = 0xFFD700 if sort_by == "rarity" else 0x2ECC71,
     )
     embed.add_field(
-        name  = "Server Stats",
-        value = (
-            f"📦 **{total_items}** Items gesamt\n"
-            f"💎 **{total_value:,}** {CURRENCY_EMOJI} Gesamtwert\n"
-            f"⭐ **{gold_count}** Gold · 🌸 **{pink_count}** Pink"
-        ),
+        name  = S.STATS_NAME,
+        value = S.STATS_VALUE.format(total=total_items, total_value=total_value, CURRENCY_EMOJI=CURRENCY_EMOJI, gold=gold_count, pink=pink_count),
         inline = False,
     )
     embed.set_footer(text=footer)
@@ -108,7 +105,7 @@ class SkinRankingView(discord.ui.View):
         self.value_btn.disabled  = (self.mode == "value")
         self.rarity_btn.disabled = (self.mode == "rarity")
 
-    @discord.ui.button(label="Nach Wert", style=discord.ButtonStyle.success, emoji="💰")
+    @discord.ui.button(label=S.VALUE_BTN_LABEL, style=discord.ButtonStyle.success, emoji="💰")
     async def value_btn(self, interaction: discord.Interaction, _: discord.ui.Button):
         self.mode = "value"
         self._sync()
@@ -116,7 +113,7 @@ class SkinRankingView(discord.ui.View):
             embed=_build_embed(self.flat, "value", self.member), view=self
         )
 
-    @discord.ui.button(label="Nach Seltenheit", style=discord.ButtonStyle.primary, emoji="⭐")
+    @discord.ui.button(label=S.RARITY_BTN_LABEL, style=discord.ButtonStyle.primary, emoji="⭐")
     async def rarity_btn(self, interaction: discord.Interaction, _: discord.ui.Button):
         self.mode = "rarity"
         self._sync()
@@ -129,9 +126,9 @@ class SkinRankingView(discord.ui.View):
             child.disabled = True
 
 
-@command("skinranking", description="Zeige die wertvollsten/seltensten Items auf dem Server",
+@command("skinranking", description=S.DESCRIPTION,
          usage="f.skinranking [value|rarity]", category="Casino")
-@command("skins",       description="Zeige die wertvollsten/seltensten Items auf dem Server",
+@command("skins",       description=S.DESCRIPTION,
          usage="f.skins [value|rarity]",       category="Casino")
 async def skinranking_command(message: Message, args: list[str]):
     sort_by = "value"

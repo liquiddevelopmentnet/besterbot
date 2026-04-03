@@ -3,6 +3,7 @@ from discord import Message
 
 from bot.commands import command
 from bot.commands.registry import get_commands_by_category
+from bot.strings import Help as S
 
 _EMBED_COLOUR = 0x5865F2
 _MAX_FIELD_VALUE = 1024
@@ -13,7 +14,7 @@ _MAX_EMBEDS = 10
 def _build_embeds(categories: dict) -> list[discord.Embed]:
     """Build one or more embeds that fit Discord limits."""
     embeds: list[discord.Embed] = []
-    current = discord.Embed(title="📖 Available Commands", colour=_EMBED_COLOUR)
+    current = discord.Embed(title=S.EMBED_TITLE, colour=_EMBED_COLOUR)
     field_count = 0
 
     for cat_name, cmds in sorted(categories.items()):
@@ -39,7 +40,7 @@ def _build_embeds(categories: dict) -> list[discord.Embed]:
             chunks.append("\n".join(current_chunk))
 
         for i, chunk in enumerate(chunks):
-            name = f"__**{cat_name}**__" if i == 0 else f"__**{cat_name} (cont.)**__"
+            name = f"__**{cat_name}**__" if i == 0 else f"__**{cat_name}{S.CAT_CONT_SUFFIX}**__"
 
             # Start a new embed if this one is full
             if field_count >= _MAX_FIELDS:
@@ -56,14 +57,14 @@ def _build_embeds(categories: dict) -> list[discord.Embed]:
     # Number pages if more than one
     if len(embeds) > 1:
         for i, embed in enumerate(embeds):
-            embed.set_footer(text=f"Page {i + 1}/{len(embeds)}")
+            embed.set_footer(text=S.PAGE_FOOTER.format(page=i + 1, total=len(embeds)))
 
     return embeds[:_MAX_EMBEDS]
 
 
 @command(
     "help",
-    description="Show all available commands",
+    description=S.DESCRIPTION,
     usage="f.help",
     category="General",
 )

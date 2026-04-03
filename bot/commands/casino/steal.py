@@ -16,6 +16,7 @@ from bot.commands.casino.wallet import (
     get_cooldown, set_cooldown, tag_embed,
     CURRENCY_NAME, CURRENCY_EMOJI,
 )
+from bot.strings import Steal as S
 
 _STEAL_KEY = "last_steal"
 _COOLDOWN_SECS  = 5 * 60  # 5 minutes
@@ -24,7 +25,7 @@ _MAX_STEAL      = 5_000   # max Maka you can gain on a successful steal
 _MAX_PENALTY    = 3_000   # max Maka you can lose when caught
 
 
-@command("steal", description="Attempt to steal from another player", usage="f.steal @user", category="Casino")
+@command("steal", description=S.DESCRIPTION, usage="f.steal @user", category="Casino")
 async def steal_command(message: Message, args: list[str]):
     if not message.mentions:
         await message.reply("Usage: `f.steal @user`")
@@ -33,10 +34,10 @@ async def steal_command(message: Message, args: list[str]):
     target = message.mentions[0]
 
     if target.id == message.author.id:
-        await message.reply("You can't steal from yourself.")
+        await message.reply(S.CANT_STEAL_SELF)
         return
     if target.bot:
-        await message.reply("Bots don't carry cash.")
+        await message.reply(S.CANT_STEAL_BOT)
         return
 
     # Cooldown check
@@ -46,9 +47,7 @@ async def steal_command(message: Message, args: list[str]):
         if remaining > 0:
             h, rem = divmod(int(remaining), 3600)
             m, s = divmod(rem, 60)
-            await message.reply(
-                f"\U0001f6ab You're still laying low. Try again in **{h}h {m}m {s}s**."
-            )
+            await message.reply(S.COOLDOWN.format(h=h, m=m, s=s))
             return
 
     target_bal = get_balance(target.id)
@@ -56,9 +55,7 @@ async def steal_command(message: Message, args: list[str]):
 
     # Need something worth stealing
     if target_bal < 100:
-        await message.reply(
-            f"**{target.display_name}** is too broke to steal from (< 100 {CURRENCY_EMOJI})."
-        )
+        await message.reply(S.TARGET_BROKE.format(name=target.display_name, CURRENCY_EMOJI=CURRENCY_EMOJI))
         return
 
     set_cooldown(message.author.id, _STEAL_KEY, time.time())
@@ -73,16 +70,13 @@ async def steal_command(message: Message, args: list[str]):
         new_author = add_balance(message.author.id, stolen)
 
         embed = discord.Embed(
-            title="\U0001f977 Heist Successful!",
-            description=(
-                f"You pickpocketed **{stolen:,}** {CURRENCY_EMOJI} "
-                f"from **{target.display_name}**!"
-            ),
+            title=S.SUCCESS_TITLE,
+            description=S.SUCCESS_DESC.format(stolen=stolen, CURRENCY_EMOJI=CURRENCY_EMOJI, name=target.display_name),
             color=0x2ECC71,
         )
-        embed.add_field(name="Your Balance", value=f"{new_author:,} {CURRENCY_EMOJI}", inline=True)
+        embed.add_field(name=S.YOUR_BALANCE, value=f"{new_author:,} {CURRENCY_EMOJI}", inline=True)
         embed.add_field(
-            name=f"{target.display_name}'s Balance",
+            name=S.TARGET_BALANCE.format(name=target.display_name),
             value=f"{get_balance(target.id):,} {CURRENCY_EMOJI}",
             inline=True,
         )
@@ -94,21 +88,18 @@ async def steal_command(message: Message, args: list[str]):
         new_author = force_remove_balance(message.author.id, penalty)
 
         embed = discord.Embed(
-            title="\U0001f6a8 Caught Red-Handed!",
-            description=(
-                f"**{target.display_name}** caught you stealing and called the cops.\n"
-                f"You were fined **{penalty:,}** {CURRENCY_EMOJI}."
-            ),
+            title=S.CAUGHT_TITLE,
+            description=S.CAUGHT_DESC.format(name=target.display_name, penalty=penalty, CURRENCY_EMOJI=CURRENCY_EMOJI),
             color=0xE74C3C,
         )
-        embed.add_field(name="Your Balance", value=f"{new_author:,} {CURRENCY_EMOJI}", inline=True)
+        embed.add_field(name=S.YOUR_BALANCE, value=f"{new_author:,} {CURRENCY_EMOJI}", inline=True)
         if new_author < 0:
             embed.add_field(
-                name="\U0001f4b8 In Debt",
-                value=f"You're **{abs(new_author):,}** {CURRENCY_EMOJI} in the hole.",
+                name=S.DEBT_NAME,
+                value=S.DEBT_VALUE.format(amount=abs(new_author), CURRENCY_EMOJI=CURRENCY_EMOJI),
                 inline=True,
             )
 
-    embed.set_footer(text="5-minute cooldown before your next attempt.")
+    embed.set_footer(text=S.FOOTER)
     tag_embed(embed, message.author)
     await message.reply(embed=embed)

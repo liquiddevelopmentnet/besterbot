@@ -9,28 +9,20 @@ from bot.commands.casino.wallet import (
     add_balance, get_cooldown, set_cooldown, tag_embed,
     CURRENCY_EMOJI,
 )
+from bot.strings import Beg as S
 
 _KEY = "last_beg"
 _COOLDOWN = 240  # 4 minutes
 
-_RESPONSES = [
-    "A kind stranger took pity on you.",
-    "Someone threw coins out of a car window.",
-    "You found a crumpled bill on the ground.",
-    "A tourist thought you were a street performer.",
-    "Your sob story actually worked.",
-    "An old lady gave you her grocery change.",
-]
 
-
-@command("beg", description="Beg for spare change", usage="f.beg", category="Casino")
+@command("beg", description=S.COMMAND_DESCRIPTION, usage="f.beg", category="Casino")
 async def beg_command(message: Message, args: list[str]):
     last = get_cooldown(message.author.id, _KEY)
     if last:
         remaining = _COOLDOWN - (time.time() - last)
         if remaining > 0:
             m, s = divmod(int(remaining), 60)
-            await message.reply(f"🙏 People are tired of you. Wait **{m}m {s}s** before begging again.")
+            await message.reply(S.COOLDOWN.format(m=m, s=s))
             return
 
     earned = random.randint(500, 2500)
@@ -38,9 +30,9 @@ async def beg_command(message: Message, args: list[str]):
     set_cooldown(message.author.id, _KEY, time.time())
 
     embed = tag_embed(discord.Embed(
-        title="🙏 Begging Complete",
-        description=f"{random.choice(_RESPONSES)}\n+**{earned:,}** {CURRENCY_EMOJI}",
+        title=S.TITLE,
+        description=S.DESCRIPTION.format(response=random.choice(S.RESPONSES), earned=earned, CURRENCY_EMOJI=CURRENCY_EMOJI),
         color=0x95A5A6,
     ), message.author)
-    embed.set_footer(text=f"Balance: {new_bal:,} {CURRENCY_EMOJI} • Cooldown: 4min")
+    embed.set_footer(text=S.FOOTER.format(new_bal=new_bal, CURRENCY_EMOJI=CURRENCY_EMOJI))
     await message.reply(embed=embed)

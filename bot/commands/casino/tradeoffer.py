@@ -11,6 +11,7 @@ from bot.commands.casino.wallet import (
     get_inventory, trade_items, tag_embed, CURRENCY_EMOJI,
 )
 from bot.commands.casino.items import item_full_name, RARITIES
+from bot.strings import Tradeoffer as S
 
 # ── In-memory pending trades (expire after OFFER_TTL seconds) ─────────────────
 OFFER_TTL = 300  # 5 minutes
@@ -34,13 +35,13 @@ def _items_embed(
     status: str | None = None,
 ) -> discord.Embed:
     embed = discord.Embed(
-        title="🔁 Trade Angebot",
+        title=S.EMBED_TITLE,
         color=0xF39C12,
     )
 
     def _fmt(items: list) -> str:
         if not items:
-            return "*(nichts)*"
+            return S.NOTHING
         return "\n".join(
             f"{RARITIES[it['rarity']]['emoji']} **{item_full_name(it)}** — "
             f"Float: `{it['float']:.6f}` · Pattern: `{it['pattern']}` · "
@@ -48,14 +49,14 @@ def _items_embed(
             for it in items
         )
 
-    embed.add_field(name=f"📤 {from_name} bietet:", value=_fmt(offered_items), inline=False)
+    embed.add_field(name=S.FROM_OFFERS.format(name=from_name), value=_fmt(offered_items), inline=False)
     if counter_items:
-        embed.add_field(name="📥 Gegenangebot:", value=_fmt(counter_items), inline=False)
+        embed.add_field(name=S.COUNTER_OFFER, value=_fmt(counter_items), inline=False)
 
     if status:
-        embed.add_field(name="Status", value=status, inline=False)
+        embed.add_field(name=S.STATUS, value=status, inline=False)
 
-    embed.set_footer(text=f"Trade-ID: {trade_id}  ·  Läuft in 5 Min ab")
+    embed.set_footer(text=S.FOOTER.format(trade_id=trade_id))
     if from_member:
         tag_embed(embed, from_member)
     return embed
@@ -83,19 +84,19 @@ class TradeResponseView(discord.ui.View):
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.to_id:
             await interaction.response.send_message(
-                "Dieses Angebot ist nicht für dich!", ephemeral=True
+                S.NOT_FOR_YOU, ephemeral=True
             )
             return False
         return True
 
-    @discord.ui.button(label="Annehmen", style=discord.ButtonStyle.success, emoji="✅")
+    @discord.ui.button(label=S.ACCEPT_LABEL, style=discord.ButtonStyle.success, emoji="✅")
     async def accept(self, interaction: discord.Interaction, _: discord.ui.Button):
         if self._done:
             return
         trade = _pending.get(self.trade_id)
         if trade is None:
             await interaction.response.edit_message(
-                content="❌ Trade abgelaufen oder nicht mehr vorhanden.", embed=None, view=None
+                content=S.EXPIRED, embed=None, view=None
             )
             return
         self._done = True
@@ -110,7 +111,7 @@ class TradeResponseView(discord.ui.View):
 
         if not ok:
             await interaction.response.edit_message(
-                content="❌ Trade fehlgeschlagen — Items nicht mehr vorhanden.", embed=None, view=self
+                content=S.TRADE_FAILED, embed=None, view=self
             )
             return
 
@@ -120,18 +121,18 @@ class TradeResponseView(discord.ui.View):
             self.from_member.display_name,
             trade["from_items"],
             trade["to_items"],
-            status=f"✅ Trade angenommen von **{self.to_member.display_name}**!",
+            status=S.ACCEPTED_STATUS.format(name=self.to_member.display_name),
         )
         await interaction.response.edit_message(embed=embed, view=self)
 
-    @discord.ui.button(label="Gegenangebot", style=discord.ButtonStyle.primary, emoji="🔄")
+    @discord.ui.button(label=S.COUNTER_LABEL, style=discord.ButtonStyle.primary, emoji="🔄")
     async def counter(self, interaction: discord.Interaction, _: discord.ui.Button):
         """Open a modal so the receiver can specify counter-item numbers."""
         if self._done:
             return
         trade = _pending.get(self.trade_id)
         if trade is None:
-            await interaction.response.send_message("Trade nicht mehr vorhanden.", ephemeral=True)
+            await interaction.response.send_message(S.TRADE_GONE, ephemeral=True)
             return
         await interaction.response.send_modal(
             CounterModal(
@@ -144,24 +145,16 @@ class TradeResponseView(discord.ui.View):
             )
         )
 
-    @discord.ui.button(label="Ablehnen", style=discord.ButtonStyle.danger, emoji="❌")
+    @discord.ui.button(label=S.DECLINE_LABEL, style=discord.ButtonStyle.danger, emoji="❌")
     async def decline(self, interaction: discord.Interaction, _: discord.ui.Button):
         if self._done:
             return
         self._done = True
         self._disable_all()
         _pending.pop(self.trade_id, None)
-        embed = _items_embed(
-            self.trade_id,
-            self.from_member,
-            self.from_member.display_name,
-            _pending.get(self.trade_id, {}).get("from_items", []),
-            [],
-            status=f"❌ Trade abgelehnt von **{self.to_member.display_name}**.",
-        )
         # Can't use from_items after deletion; just show status
         await interaction.response.edit_message(
-            content=f"❌ **{self.to_member.display_name}** hat das Trade-Angebot abgelehnt.",
+            content=S.DECLINED_CONTENT.format(name=self.to_member.display_name),
             embed=None,
             view=self,
         )
@@ -175,10 +168,10 @@ class TradeResponseView(discord.ui.View):
         self._disable_all()
 
 
-class CounterModal(discord.ui.Modal, title="Gegenangebot — Item-Nummern"):
+class CounterModal(discord.ui.Modal, title=S.COUNTER_MODAL_TITLE):
     item_input = discord.ui.TextInput(
-        label="Deine Item-Nummern (komma- oder leerzeichengetrennt)",
-        placeholder="z. B.: 1 4 7  oder  2,5",
+        label=S.COUNTER_INPUT_LABEL,
+        placeholder=S.COUNTER_PLACEHOLDER,
         required=True,
         max_length=100,
     )
@@ -203,7 +196,7 @@ class CounterModal(discord.ui.Modal, title="Gegenangebot — Item-Nummern"):
     async def on_submit(self, interaction: discord.Interaction):
         trade = _pending.get(self.trade_id)
         if trade is None:
-            await interaction.response.send_message("Trade nicht mehr vorhanden.", ephemeral=True)
+            await interaction.response.send_message(S.TRADE_GONE, ephemeral=True)
             return
 
         raw    = self.item_input.value.replace(",", " ").split()
@@ -225,14 +218,14 @@ class CounterModal(discord.ui.Modal, title="Gegenangebot — Item-Nummern"):
 
         if errors:
             await interaction.response.send_message(
-                f"Ungültige Nummern: `{', '.join(errors)}`. Du hast **{len(inv)}** Items.",
+                S.COUNTER_INVALID_NUMS.format(nums=', '.join(errors), count=len(inv)),
                 ephemeral=True,
             )
             return
 
         if not chosen:
             await interaction.response.send_message(
-                "Keine Items ausgewählt.", ephemeral=True
+                S.COUNTER_NONE_SELECTED, ephemeral=True
             )
             return
 
@@ -248,10 +241,10 @@ class CounterModal(discord.ui.Modal, title="Gegenangebot — Item-Nummern"):
             self.from_member.display_name,
             trade["from_items"],
             chosen,
-            status=(
-                f"🔄 **{self.to_member.display_name}** hat ein Gegenangebot geschickt!\n"
-                f"**{self.from_member.mention}**, akzeptiere mit `f.accepttrade {self.trade_id}`"
-                f" oder lehne ab mit `f.declinetrade {self.trade_id}`."
+            status=S.COUNTER_SENT_STATUS.format(
+                to_name=self.to_member.display_name,
+                from_mention=self.from_member.mention,
+                trade_id=self.trade_id,
             ),
         )
         await interaction.response.edit_message(embed=embed, view=self.parent_view)
@@ -278,17 +271,17 @@ class AcceptCounterView(discord.ui.View):
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.from_id:
-            await interaction.response.send_message("Nicht dein Trade!", ephemeral=True)
+            await interaction.response.send_message(S.NOT_YOUR_TRADE_COUNTER, ephemeral=True)
             return False
         return True
 
-    @discord.ui.button(label="Gegenangebot annehmen", style=discord.ButtonStyle.success, emoji="✅")
+    @discord.ui.button(label=S.ACCEPT_COUNTER_LABEL, style=discord.ButtonStyle.success, emoji="✅")
     async def accept(self, interaction: discord.Interaction, _: discord.ui.Button):
         if self._done:
             return
         trade = _pending.get(self.trade_id)
         if trade is None:
-            await interaction.response.edit_message(content="Trade abgelaufen.", embed=None, view=None)
+            await interaction.response.edit_message(content=S.TRADE_EXPIRED_COUNTER, embed=None, view=None)
             return
         self._done = True
         self._disable_all()
@@ -302,7 +295,7 @@ class AcceptCounterView(discord.ui.View):
 
         if not ok:
             await interaction.response.edit_message(
-                content="❌ Trade fehlgeschlagen — Items nicht mehr vorhanden.", embed=None, view=self
+                content=S.COUNTER_FAILED, embed=None, view=self
             )
             return
 
@@ -312,11 +305,11 @@ class AcceptCounterView(discord.ui.View):
             self.from_member.display_name,
             trade["from_items"],
             trade["to_items"],
-            status=f"✅ Trade abgeschlossen zwischen **{self.from_member.display_name}** und **{self.to_member.display_name}**!",
+            status=S.TRADE_DONE_STATUS.format(from_name=self.from_member.display_name, to_name=self.to_member.display_name),
         )
         await interaction.response.edit_message(embed=embed, view=self)
 
-    @discord.ui.button(label="Ablehnen", style=discord.ButtonStyle.danger, emoji="❌")
+    @discord.ui.button(label=S.DECLINE_LABEL, style=discord.ButtonStyle.danger, emoji="❌")
     async def decline(self, interaction: discord.Interaction, _: discord.ui.Button):
         if self._done:
             return
@@ -324,7 +317,7 @@ class AcceptCounterView(discord.ui.View):
         self._disable_all()
         _pending.pop(self.trade_id, None)
         await interaction.response.edit_message(
-            content=f"❌ Gegenangebot abgelehnt.", embed=None, view=self
+            content=S.COUNTER_DECLINED_CONTENT, embed=None, view=self
         )
 
     def _disable_all(self) -> None:
@@ -336,36 +329,28 @@ class AcceptCounterView(discord.ui.View):
         self._disable_all()
 
 
-@command("tradeoffer", description="Sende ein Trade-Angebot: f.tradeoffer @user <item_nummern...>",
+@command("tradeoffer", description=S.DESCRIPTION_TRADEOFFER,
          usage="f.tradeoffer @user <#> [#...]", category="Casino")
 async def tradeoffer_command(message: Message, args: list[str]):
     _prune_expired()
 
     if not message.mentions:
-        await message.reply(
-            "**Verwendung:** `f.tradeoffer @user <item_nummern>`\n"
-            "Beispiel: `f.tradeoffer @Finn 1 3` — bietet Items #1 und #3 an.\n"
-            "Sieh dein Inventar mit `f.inventory`."
-        )
+        await message.reply(S.USAGE)
         return
 
     target = message.mentions[0]
 
     if target.id == message.author.id:
-        await message.reply("Du kannst dir selbst kein Angebot schicken.")
+        await message.reply(S.CANT_TRADE_SELF)
         return
     if target.bot:
-        await message.reply("Du kannst keinem Bot ein Angebot schicken.")
+        await message.reply(S.CANT_TRADE_BOT)
         return
 
     # Parse item numbers (everything after the mention)
     num_tokens = [a for a in args if a.isdigit()]
     if not num_tokens:
-        await message.reply(
-            "Gib mindestens eine Inventarnummer an.\n"
-            "Beispiel: `f.tradeoffer @user 1 3`\n"
-            "Sieh dein Inventar mit `f.inventory`."
-        )
+        await message.reply(S.NO_ITEMS_GIVEN)
         return
 
     inv    = get_inventory(message.author.id)
@@ -382,9 +367,7 @@ async def tradeoffer_command(message: Message, args: list[str]):
             errors.append(tok)
 
     if errors:
-        await message.reply(
-            f"Ungültige Nummern: `{', '.join(errors)}`. Du hast **{len(inv)}** Items."
-        )
+        await message.reply(S.INVALID_NUMBERS.format(nums=', '.join(errors), count=len(inv)))
         return
 
     trade_id = str(uuid.uuid4())[:8]
@@ -405,7 +388,7 @@ async def tradeoffer_command(message: Message, args: list[str]):
         chosen,
         [],
     )
-    embed.description = f"{target.mention}, du hast ein Trade-Angebot von **{message.author.display_name}** erhalten!"
+    embed.description = S.OFFER_DESC.format(mention=target.mention, name=message.author.display_name)
 
     view = TradeResponseView(
         trade_id,
@@ -417,27 +400,27 @@ async def tradeoffer_command(message: Message, args: list[str]):
     await message.reply(content=target.mention, embed=embed, view=view)
 
 
-@command("accepttrade", description="Gegenangebot akzeptieren",
+@command("accepttrade", description=S.DESCRIPTION_ACCEPTTRADE,
          usage="f.accepttrade <trade_id>", category="Casino")
 async def accepttrade_command(message: Message, args: list[str]):
     _prune_expired()
     if not args:
-        await message.reply("Verwendung: `f.accepttrade <trade_id>`")
+        await message.reply(S.ACCEPT_USAGE)
         return
 
     trade_id = args[0]
     trade    = _pending.get(trade_id)
 
     if trade is None:
-        await message.reply("Trade nicht gefunden oder bereits abgelaufen.")
+        await message.reply(S.NOT_FOUND)
         return
 
     if message.author.id != trade["from_id"]:
-        await message.reply("Das ist nicht dein Trade.")
+        await message.reply(S.NOT_YOUR_TRADE)
         return
 
     if not trade["to_item_ids"]:
-        await message.reply("Der andere Spieler hat noch kein Gegenangebot gemacht.")
+        await message.reply(S.NO_COUNTER_YET)
         return
 
     try:
@@ -453,7 +436,7 @@ async def accepttrade_command(message: Message, args: list[str]):
         from_member.display_name,
         trade["from_items"],
         trade["to_items"],
-        status="Bestätige das Gegenangebot:",
+        status=S.CONFIRM_COUNTER_STATUS,
     )
     view = AcceptCounterView(
         trade_id,
@@ -465,22 +448,22 @@ async def accepttrade_command(message: Message, args: list[str]):
     await message.reply(embed=embed, view=view)
 
 
-@command("declinetrade", description="Gegenangebot ablehnen",
+@command("declinetrade", description=S.DESCRIPTION_DECLINETRADE,
          usage="f.declinetrade <trade_id>", category="Casino")
 async def declinetrade_command(message: Message, args: list[str]):
     if not args:
-        await message.reply("Verwendung: `f.declinetrade <trade_id>`")
+        await message.reply(S.DECLINE_USAGE)
         return
 
     trade_id = args[0]
     trade    = _pending.get(trade_id)
 
     if trade is None:
-        await message.reply("Trade nicht gefunden oder bereits abgelaufen.")
+        await message.reply(S.NOT_FOUND)
         return
     if message.author.id != trade["from_id"]:
-        await message.reply("Das ist nicht dein Trade.")
+        await message.reply(S.NOT_YOUR_TRADE)
         return
 
     del _pending[trade_id]
-    await message.reply(f"Trade `{trade_id}` abgelehnt und entfernt.")
+    await message.reply(S.DECLINED_AND_REMOVED.format(trade_id=trade_id))

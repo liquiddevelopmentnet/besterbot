@@ -7,17 +7,18 @@ from gtts import gTTS
 
 from bot.commands import command
 from bot.commands.media import voice
+from bot.strings import TTS as S
 
 
 @command(
     "tts",
-    description="Text to speech in voice channel",
+    description=S.DESCRIPTION,
     usage="f.tts <text>",
     category="Media",
 )
 async def tts_command(message: Message, args: list[str]):
     if not message.author.voice:
-        await message.reply("You need to be in a voice channel to use this.")
+        await message.reply(S.NO_VOICE_CHANNEL)
         return
 
     text = " ".join(args)

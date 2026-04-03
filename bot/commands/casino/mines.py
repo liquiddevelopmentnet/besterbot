@@ -8,6 +8,7 @@ from bot.commands.casino.wallet import (
     remove_balance, add_balance, tag_embed,
     CURRENCY_NAME, CURRENCY_EMOJI, MIN_BET, resolve_bet,
 )
+from bot.strings import Mines as S
 
 _TOTAL   = 20   # 4 rows × 5 cols
 _MINES   = 3
@@ -38,40 +39,35 @@ def _build_embed(
     next_payout = int(bet * next_mult)
 
     if hit_mine:
-        title = "💣 Mines — 💥 BOOM!"
+        title = S.BOOM_TITLE
         if safe_found > 0:
-            desc = (
-                f"You hit a mine and lost **{bet:,}** {CURRENCY_EMOJI}.\n"
-                f"You could've cashed out **{payout:,}** {CURRENCY_EMOJI} (**{mult}x**) — so close."
-            )
+            desc = S.BOOM_DESC_HIT.format(bet=bet, CURRENCY_EMOJI=CURRENCY_EMOJI, payout=payout, mult=mult)
         else:
-            desc = f"You hit a mine on your first click and lost **{bet:,}** {CURRENCY_EMOJI}."
+            desc = S.BOOM_DESC_FIRST.format(bet=bet, CURRENCY_EMOJI=CURRENCY_EMOJI)
         color = 0xE74C3C
 
     elif cashed_out:
-        title = "💣 Mines — 💰 Cashed Out!"
-        desc  = f"Walked away with **{payout:,}** {CURRENCY_EMOJI} (**{mult}x**)."
+        title = S.CASHOUT_TITLE
+        desc  = S.CASHOUT_DESC.format(payout=payout, CURRENCY_EMOJI=CURRENCY_EMOJI, mult=mult)
         color = 0x2ECC71
 
     else:
-        title = "💣 Mines"
+        title = S.PLAYING_TITLE
         if safe_found == 0:
-            desc = (
-                f"Flip tiles to uncover safe spots. {_MINES} mines are hidden.\n"
-                f"First tile pays **{next_payout:,}** {CURRENCY_EMOJI} (**{next_mult}x**)."
-            )
+            desc = S.PLAYING_DESC_START.format(mines=_MINES, next_payout=next_payout, CURRENCY_EMOJI=CURRENCY_EMOJI, next_mult=next_mult)
         else:
-            desc = (
-                f"**{safe_found}** safe tile{'s' if safe_found != 1 else ''} found!\n"
-                f"Cash out: **{payout:,}** {CURRENCY_EMOJI} (**{mult}x**) "
-                f"→ Next tile: **{next_payout:,}** {CURRENCY_EMOJI} (**{next_mult}x**)"
+            s_suffix = "s" if safe_found != 1 else ""
+            desc = S.PLAYING_DESC_PROGRESS.format(
+                safe_found=safe_found, s=s_suffix,
+                payout=payout, CURRENCY_EMOJI=CURRENCY_EMOJI, mult=mult,
+                next_payout=next_payout, next_mult=next_mult,
             )
         color = 0x3498DB
 
     embed = discord.Embed(title=title, description=desc, color=color)
-    embed.add_field(name="Bet",        value=f"{bet:,} {CURRENCY_EMOJI}", inline=True)
-    embed.add_field(name="Multiplier", value=f"{mult}x",                  inline=True)
-    embed.add_field(name="Mines",      value=f"💣 × {_MINES}",            inline=True)
+    embed.add_field(name=S.FIELD_BET,        value=f"{bet:,} {CURRENCY_EMOJI}", inline=True)
+    embed.add_field(name=S.FIELD_MULTIPLIER, value=f"{mult}x",                  inline=True)
+    embed.add_field(name=S.FIELD_MINES,      value=S.MINES_VALUE.format(mines=_MINES), inline=True)
 
     return tag_embed(embed, member)
 
@@ -103,7 +99,7 @@ class MinesView(discord.ui.View):
 
         # Row 4 — single action button (Give Up → Cash Out after first safe tile)
         self._action_btn = discord.ui.Button(
-            label="Give Up",
+            label=S.GIVE_UP_LABEL,
             style=discord.ButtonStyle.danger,
             emoji="🏳️",
             row=4,
@@ -139,7 +135,7 @@ class MinesView(discord.ui.View):
 
     def _promote_action_btn(self):
         """Switch the action button from Give Up to Cash Out after first safe tile."""
-        self._action_btn.label = "Cash Out"
+        self._action_btn.label = S.CASH_OUT_LABEL
         self._action_btn.style = discord.ButtonStyle.success
         self._action_btn.emoji = discord.PartialEmoji(name="💰")
 
@@ -148,7 +144,7 @@ class MinesView(discord.ui.View):
     def _make_tile_cb(self, idx: int):
         async def callback(interaction: discord.Interaction):
             if interaction.user.id != self.user_id:
-                await interaction.response.send_message("This isn't your game!", ephemeral=True)
+                await interaction.response.send_message(S.NOT_YOUR_GAME, ephemeral=True)
                 return
             if self.game_over or idx in self.revealed:
                 await interaction.response.defer()
@@ -193,7 +189,7 @@ class MinesView(discord.ui.View):
 
     async def _do_action(self, interaction: discord.Interaction):
         if interaction.user.id != self.user_id:
-            await interaction.response.send_message("This isn't your game!", ephemeral=True)
+            await interaction.response.send_message(S.NOT_YOUR_GAME, ephemeral=True)
             return
         if self.game_over:
             await interaction.response.defer()
@@ -206,8 +202,8 @@ class MinesView(discord.ui.View):
             # Give Up — no tiles flipped, full refund
             add_balance(self.user_id, self.bet)
             embed = tag_embed(discord.Embed(
-                title="💣 Mines — Cancelled",
-                description=f"Game cancelled. **{self.bet:,}** {CURRENCY_EMOJI} refunded.",
+                title=S.CANCELLED_TITLE,
+                description=S.CANCELLED_DESC.format(bet=self.bet, CURRENCY_EMOJI=CURRENCY_EMOJI),
                 color=0x95A5A6,
             ), self.member)
         else:
@@ -240,7 +236,7 @@ class MinesView(discord.ui.View):
                 pass
 
 
-@command("mines", description="Minesweeper — cash out before you hit a mine", usage="f.mines <bet>", category="Casino")
+@command("mines", description=S.DESCRIPTION, usage="f.mines <bet>", category="Casino")
 async def mines_command(message: Message, args: list[str]):
     if not args:
         await message.reply("Usage: `f.mines <bet>`  (e.g. `f.mines 500`, `f.mines all`, `f.mines 50%`)")
@@ -251,13 +247,13 @@ async def mines_command(message: Message, args: list[str]):
         await message.reply("Usage: `f.mines <bet>`  (e.g. `f.mines 500`, `f.mines all`, `f.mines 50%`)")
         return
     if bet < MIN_BET:
-        await message.reply(f"Minimum bet is {MIN_BET} {CURRENCY_EMOJI}")
+        await message.reply(S.MIN_BET_MSG.format(MIN_BET=MIN_BET, CURRENCY_EMOJI=CURRENCY_EMOJI))
         return
 
     try:
         remove_balance(message.author.id, bet)
     except ValueError:
-        await message.reply(f"You don't have enough {CURRENCY_NAME}!")
+        await message.reply(S.NOT_ENOUGH.format(CURRENCY_NAME=CURRENCY_NAME))
         return
 
     view  = MinesView(message.author.id, message.author, bet)
