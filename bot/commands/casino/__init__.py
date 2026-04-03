@@ -5,6 +5,7 @@ import bot.commands.casino.beg
 import bot.commands.casino.fish
 import bot.commands.casino.crime
 import bot.commands.casino.scam
+import bot.commands.casino.finanzspritze
 import bot.commands.casino.earn
 import bot.commands.casino.steal
 import bot.commands.casino.balance

@@ -13,7 +13,7 @@ from bot.commands.casino.wallet import (
 )
 
 _CET = ZoneInfo("Europe/Berlin")
-_DAILY_AMOUNT = 10_000
+_DAILY_AMOUNT = 30_000
 
 # ── Earning data (mirrors the individual command files) ───────────────────────
 
@@ -37,13 +37,13 @@ _JOBS = [
 ]
 
 _CATCHES = [
-    (300,  600,  "🐟", "a small sardine"),
-    (400,  800,  "🐠", "a tropical fish"),
-    (500,  900,  "🦐", "a bag of shrimp"),
-    (600, 1000,  "🦀", "a crab"),
-    (800, 1200,  "🐡", "a pufferfish"),
-    (600,  900,  "🥾", "an old boot (someone paid for the antique)"),
-    (1000, 1200, "🦞", "a massive lobster"),
+    (1200, 3000, "🐟", "a small sardine"),
+    (1500, 3500, "🐠", "a tropical fish"),
+    (2000, 4000, "🦐", "a bag of shrimp"),
+    (2500, 4500, "🦀", "a crab"),
+    (3500, 5500, "🐡", "a pufferfish"),
+    (2000, 4000, "🥾", "an old boot (someone paid for the antique)"),
+    (4500, 6500, "🦞", "a massive lobster"),
 ]
 
 _SUCCESS_CRIMES = [
@@ -74,22 +74,24 @@ _FAIL_SCAMS = [
 
 # (cmd, key, cd_secs, gain_str, risk_str, desc, has_button)
 _COMMANDS = [
-    ("f.beg",   "last_beg",   120, "50 – 500",         "None",                    "Beg strangers for spare change",       True),
-    ("f.fish",  "last_fish",  300, "300 – 1,200",       "None",                    "Cast a line and sell your catch",      True),
-    ("f.work",  "last_work",  300, "500 – 1,500",       "None",                    "Pick up a random shift job",           True),
-    ("f.steal", "last_steal", 300, "15–30% of target",  "45%: lose 20–40% of own", "Pickpocket another player",            False),
-    ("f.crime", "last_crime", 600, "1,500 – 4,000",     "30%: lose 500–1,500",     "Pull off a street-level crime",        True),
-    ("f.scam",  "last_scam",  600, "2,000 – 5,000",     "40%: lose 1,000–2,000",   "Run a high-risk con",                  True),
-    ("f.daily", "last_daily", 0,   "10,000",            "None",                    "Collect your daily government handout",True),
+    ("f.beg",           "last_beg",           240,  "500 – 2,500",        "None",                    "Beg strangers for spare change",       True),
+    ("f.fish",          "last_fish",          600,  "1,200 – 6,500",      "None",                    "Cast a line and sell your catch",      True),
+    ("f.work",          "last_work",          600,  "2,000 – 5,000",      "None",                    "Pick up a random shift job",           True),
+    ("f.steal",         "last_steal",         600,  "15–30% of target",   "45%: lose 20–40% of own", "Pickpocket another player",            False),
+    ("f.crime",         "last_crime",         1200, "8,000 – 13,000",     "30%: lose 1,000–2,000",   "Pull off a street-level crime",        True),
+    ("f.scam",          "last_scam",          1200, "10,000 – 16,000",    "40%: lose 1,000–2,500",   "Run a high-risk con",                  True),
+    ("f.daily",         "last_daily",         0,    "30,000",             "None",                    "Collect your daily government handout",True),
+    ("f.finanzspritze", "last_finanzspritze", 3600, "10,000",             "None",                    "Claim your hourly government subsidy", True),
 ]
 
 _BUTTON_META = [
-    ("beg",   "🙏", "Beg",   "last_beg",   120),
-    ("fish",  "🎣", "Fish",  "last_fish",  300),
-    ("work",  "💼", "Work",  "last_work",  300),
-    ("crime", "🦹", "Crime", "last_crime", 600),
-    ("scam",  "🤑", "Scam",  "last_scam",  600),
-    ("daily", "🍾", "Daily", "last_daily", 0),
+    ("beg",           "🙏", "Beg",          "last_beg",           240),
+    ("fish",          "🎣", "Fish",         "last_fish",          600),
+    ("work",          "💼", "Work",         "last_work",          600),
+    ("crime",         "🦹", "Crime",        "last_crime",         1200),
+    ("scam",          "🤑", "Scam",         "last_scam",          1200),
+    ("daily",         "🍾", "Daily",        "last_daily",         0),
+    ("finanzspritze", "💶", "Finanzspritze","last_finanzspritze",  3600),
 ]
 
 # ── Cooldown helpers ──────────────────────────────────────────────────────────
@@ -116,7 +118,7 @@ def _status(user_id: int, key: str, cd_secs: int) -> tuple[bool, int | None]:
 # ── Earning logic — returns (title, description, color, new_bal) ──────────────
 
 def _run_beg(user_id: int) -> tuple[str, str, int, int]:
-    earned = random.randint(50, 500)
+    earned = random.randint(500, 2500)
     new_bal = add_balance(user_id, earned)
     set_cooldown(user_id, "last_beg", time.time())
     return (
@@ -142,7 +144,7 @@ def _run_fish(user_id: int) -> tuple[str, str, int, int]:
 
 def _run_work(user_id: int) -> tuple[str, str, int, int]:
     emoji, desc = random.choice(_JOBS)
-    earned = random.randint(500, 1500)
+    earned = random.randint(2000, 5000)
     new_bal = add_balance(user_id, earned)
     set_cooldown(user_id, "last_work", time.time())
     return (
@@ -156,7 +158,7 @@ def _run_work(user_id: int) -> tuple[str, str, int, int]:
 def _run_crime(user_id: int) -> tuple[str, str, int, int]:
     set_cooldown(user_id, "last_crime", time.time())
     if random.random() < 0.70:
-        earned = random.randint(1500, 4000)
+        earned = random.randint(8000, 13000)
         new_bal = add_balance(user_id, earned)
         return (
             "🦹 Crime Pays",
@@ -165,7 +167,7 @@ def _run_crime(user_id: int) -> tuple[str, str, int, int]:
             new_bal,
         )
     else:
-        lost = random.randint(500, 1500)
+        lost = random.randint(1000, 2000)
         new_bal = force_remove_balance(user_id, lost)
         return (
             "🚨 Busted!",
@@ -178,7 +180,7 @@ def _run_crime(user_id: int) -> tuple[str, str, int, int]:
 def _run_scam(user_id: int) -> tuple[str, str, int, int]:
     set_cooldown(user_id, "last_scam", time.time())
     if random.random() < 0.60:
-        earned = random.randint(2000, 5000)
+        earned = random.randint(10000, 16000)
         new_bal = add_balance(user_id, earned)
         return (
             "🤑 Scam Successful",
@@ -187,7 +189,7 @@ def _run_scam(user_id: int) -> tuple[str, str, int, int]:
             new_bal,
         )
     else:
-        lost = random.randint(1000, 2000)
+        lost = random.randint(1000, 2500)
         new_bal = force_remove_balance(user_id, lost)
         return (
             "🚔 Scam Backfired",
@@ -209,13 +211,38 @@ def _run_daily(user_id: int) -> tuple[str, str, int, int]:
     )
 
 
+_FINANZSPRITZE_AMOUNT = 10_000
+_FINANZSPRITZE_LINES = [
+    "Der Bundeshaushalt wurde 'kreativ' umgeschichtet. Du profitierst.",
+    "Scholz hat noch ein vergessenes Sondervermögen gefunden.",
+    "Das Finanzministerium sendet Grüße — und 10.000 Trostpflaster.",
+    "Dank Schuldenbremse light™ fließen heute Sondermittel.",
+    "Die Ampel ist weg, aber die Überweisung kam trotzdem an.",
+    "Ein Ausschuss hat beschlossen, dass du das brauchst. Demokratie!",
+    "Staatliche Wirtschaftsförderung: Ziel unklar, Geld da.",
+    "Haushaltslücke? Welche Haushaltslücke? Hier, nimm das.",
+]
+
+
+def _run_finanzspritze(user_id: int) -> tuple[str, str, int, int]:
+    new_bal = add_balance(user_id, _FINANZSPRITZE_AMOUNT)
+    set_cooldown(user_id, "last_finanzspritze", time.time())
+    return (
+        "💶 Finanzspritze erhalten!",
+        f"{random.choice(_FINANZSPRITZE_LINES)}\n+**{_FINANZSPRITZE_AMOUNT:,}** {CURRENCY_EMOJI}",
+        0xF1C40F,
+        new_bal,
+    )
+
+
 _RUNNERS = {
-    "beg":   _run_beg,
-    "fish":  _run_fish,
-    "work":  _run_work,
-    "crime": _run_crime,
-    "scam":  _run_scam,
-    "daily": _run_daily,
+    "beg":           _run_beg,
+    "fish":          _run_fish,
+    "work":          _run_work,
+    "crime":         _run_crime,
+    "scam":          _run_scam,
+    "daily":         _run_daily,
+    "finanzspritze": _run_finanzspritze,
 }
 
 # ── Embed builder ─────────────────────────────────────────────────────────────

@@ -11,7 +11,7 @@ from bot.commands.casino.wallet import (
 )
 
 _KEY = "last_work"
-_COOLDOWN = 300  # 5 minutes
+_COOLDOWN = 600  # 10 minutes
 
 _JOBS = [
     ("🍔", "hat die fritten in die Tütte bei MCs gepackt"),
@@ -38,7 +38,7 @@ async def work_command(message: Message, args: list[str]):
             return
 
     emoji, desc = random.choice(_JOBS)
-    earned = random.randint(500, 1500)
+    earned = random.randint(2000, 5000)
     new_bal = add_balance(message.author.id, earned)
     set_cooldown(message.author.id, _KEY, time.time())
 
@@ -47,5 +47,5 @@ async def work_command(message: Message, args: list[str]):
         description=f"You {desc} and earned **{earned:,}** {CURRENCY_EMOJI}.",
         color=0x2ECC71,
     ), message.author)
-    embed.set_footer(text=f"Balance: {new_bal:,} {CURRENCY_EMOJI} • Cooldown: 5min")
+    embed.set_footer(text=f"Balance: {new_bal:,} {CURRENCY_EMOJI} • Cooldown: 10min")
     await message.reply(embed=embed)

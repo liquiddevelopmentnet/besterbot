@@ -11,17 +11,17 @@ from bot.commands.casino.wallet import (
 )
 
 _KEY = "last_fish"
-_COOLDOWN = 300  # 5 minutes
+_COOLDOWN = 600  # 10 minutes
 
 _CATCHES = [
-    (300,  600,  "🐟", "a small sardine"),
-    (400,  800,  "🐠", "a tropical fish"),
-    (500,  900,  "🦐", "a bag of shrimp"),
-    (600, 1000,  "🦀", "a crab"),
-    (800, 1200,  "🐡", "a pufferfish"),
-    (900, 1200,  "🐙", "an octopus"),
-    (600,  900,  "🥾", "an old boot (someone paid for the antique)"),
-    (1000, 1200, "🦞", "a massive lobster"),
+    (1200, 3000, "🐟", "a small sardine"),
+    (1500, 3500, "🐠", "a tropical fish"),
+    (2000, 4000, "🦐", "a bag of shrimp"),
+    (2500, 4500, "🦀", "a crab"),
+    (3500, 5500, "🐡", "a pufferfish"),
+    (3000, 5000, "🐙", "an octopus"),
+    (2000, 4000, "🥾", "an old boot (someone paid for the antique)"),
+    (4500, 6500, "🦞", "a massive lobster"),
 ]
 
 
@@ -47,5 +47,5 @@ async def fish_command(message: Message, args: list[str]):
         description=f"You reeled in **{name}** and sold it for **{earned:,}** {CURRENCY_EMOJI}.",
         color=0x3498DB,
     ), message.author)
-    embed.set_footer(text=f"Balance: {new_bal:,} {CURRENCY_EMOJI} • Cooldown: 5min")
+    embed.set_footer(text=f"Balance: {new_bal:,} {CURRENCY_EMOJI} • Cooldown: 10min")
     await message.reply(embed=embed)

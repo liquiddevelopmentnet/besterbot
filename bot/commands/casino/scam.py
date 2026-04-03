@@ -11,7 +11,7 @@ from bot.commands.casino.wallet import (
 )
 
 _KEY = "last_scam"
-_COOLDOWN = 600  # 10 minutes
+_COOLDOWN = 1200  # 20 minutes
 _SUCCESS_CHANCE = 0.60
 
 _SUCCESS_SCAMS = [
@@ -47,7 +47,7 @@ async def scam_command(message: Message, args: list[str]):
     set_cooldown(message.author.id, _KEY, time.time())
 
     if random.random() < _SUCCESS_CHANCE:
-        earned = random.randint(2000, 5000)
+        earned = random.randint(10000, 16000)
         new_bal = add_balance(message.author.id, earned)
         embed = tag_embed(discord.Embed(
             title="🤑 Scam Successful",
@@ -55,7 +55,7 @@ async def scam_command(message: Message, args: list[str]):
             color=0x2ECC71,
         ), message.author)
     else:
-        lost = random.randint(1000, 2000)
+        lost = random.randint(1000, 2500)
         new_bal = force_remove_balance(message.author.id, lost)
         embed = tag_embed(discord.Embed(
             title="🚔 Scam Backfired",
@@ -65,5 +65,5 @@ async def scam_command(message: Message, args: list[str]):
         if new_bal < 0:
             embed.add_field(name="💸 In Debt", value=f"**{abs(new_bal):,}** {CURRENCY_EMOJI} in the hole.", inline=False)
 
-    embed.set_footer(text=f"Balance: {new_bal:,} {CURRENCY_EMOJI} • Cooldown: 10min")
+    embed.set_footer(text=f"Balance: {new_bal:,} {CURRENCY_EMOJI} • Cooldown: 20min")
     await message.reply(embed=embed)

@@ -1,4 +1,4 @@
-"""f.daily — 10 000 Maka Flaschen once per calendar day (resets at midnight CET)."""
+"""f.daily — 30 000 Maka Flaschen once per calendar day (resets at midnight CET)."""
 
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -14,7 +14,7 @@ from bot.commands.casino.wallet import (
 
 _CET = ZoneInfo("Europe/Berlin")   # handles both CET (UTC+1) and CEST (UTC+2)
 _DAILY_KEY = "last_daily"
-_DAILY_AMOUNT = 10_000
+_DAILY_AMOUNT = 30_000
 
 
 def _today_cet() -> str:
@@ -30,7 +30,7 @@ def _seconds_until_midnight_cet() -> int:
     return int((midnight - now).total_seconds())
 
 
-@command("daily", description="Claim your daily 10 000 Maka Flaschen", usage="f.daily", category="Casino")
+@command("daily", description="Claim your daily 30 000 Maka Flaschen", usage="f.daily", category="Casino")
 async def daily_command(message: Message, args: list[str]):
     today = _today_cet()
     last = get_cooldown(message.author.id, _DAILY_KEY)

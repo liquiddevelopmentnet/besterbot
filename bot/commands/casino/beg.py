@@ -11,7 +11,7 @@ from bot.commands.casino.wallet import (
 )
 
 _KEY = "last_beg"
-_COOLDOWN = 120  # 2 minutes
+_COOLDOWN = 240  # 4 minutes
 
 _RESPONSES = [
     "A kind stranger took pity on you.",
@@ -33,7 +33,7 @@ async def beg_command(message: Message, args: list[str]):
             await message.reply(f"🙏 People are tired of you. Wait **{m}m {s}s** before begging again.")
             return
 
-    earned = random.randint(50, 500)
+    earned = random.randint(500, 2500)
     new_bal = add_balance(message.author.id, earned)
     set_cooldown(message.author.id, _KEY, time.time())
 
@@ -42,5 +42,5 @@ async def beg_command(message: Message, args: list[str]):
         description=f"{random.choice(_RESPONSES)}\n+**{earned:,}** {CURRENCY_EMOJI}",
         color=0x95A5A6,
     ), message.author)
-    embed.set_footer(text=f"Balance: {new_bal:,} {CURRENCY_EMOJI} • Cooldown: 2min")
+    embed.set_footer(text=f"Balance: {new_bal:,} {CURRENCY_EMOJI} • Cooldown: 4min")
     await message.reply(embed=embed)

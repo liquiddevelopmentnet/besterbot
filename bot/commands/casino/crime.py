@@ -11,7 +11,7 @@ from bot.commands.casino.wallet import (
 )
 
 _KEY = "last_crime"
-_COOLDOWN = 600  # 10 minutes
+_COOLDOWN = 1200  # 20 minutes
 _SUCCESS_CHANCE = 0.70
 
 _SUCCESS_CRIMES = [
@@ -48,7 +48,7 @@ async def crime_command(message: Message, args: list[str]):
     set_cooldown(message.author.id, _KEY, time.time())
 
     if random.random() < _SUCCESS_CHANCE:
-        earned = random.randint(1500, 4000)
+        earned = random.randint(8000, 13000)
         new_bal = add_balance(message.author.id, earned)
         embed = tag_embed(discord.Embed(
             title="🦹 Crime Pays",
@@ -56,7 +56,7 @@ async def crime_command(message: Message, args: list[str]):
             color=0x2ECC71,
         ), message.author)
     else:
-        lost = random.randint(500, 1500)
+        lost = random.randint(1000, 2000)
         new_bal = force_remove_balance(message.author.id, lost)
         embed = tag_embed(discord.Embed(
             title="🚨 Busted!",
@@ -66,5 +66,5 @@ async def crime_command(message: Message, args: list[str]):
         if new_bal < 0:
             embed.add_field(name="💸 In Debt", value=f"**{abs(new_bal):,}** {CURRENCY_EMOJI} in the hole.", inline=False)
 
-    embed.set_footer(text=f"Balance: {new_bal:,} {CURRENCY_EMOJI} • Cooldown: 10min")
+    embed.set_footer(text=f"Balance: {new_bal:,} {CURRENCY_EMOJI} • Cooldown: 20min")
     await message.reply(embed=embed)
